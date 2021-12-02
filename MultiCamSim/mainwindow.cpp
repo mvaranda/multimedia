@@ -1,3 +1,16 @@
+
+/**********************************************************
+ *
+ *        M u l t i   C a m e r a   S i m u l a t o r
+ *
+ * License: proprietary
+ *
+ * Copyrights: Marcelo Varanda
+ * Initial date: October 2021
+ * http://www.varanda.ca
+ *
+ ***********************************************************/
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "log.h"
@@ -40,7 +53,8 @@ void MainWindow::moveEvent(QMoveEvent *event)
 void MainWindow::on_bt_play_clicked()
 {
     if (camStreamer == nullptr) {
-        camStreamer = new CamStreamer();
+        camStreamer = new CamStreamer(video_area_label->winId());
+
         camStreamer->start();
         video_area_label->setText(tr("Started player"));
     }

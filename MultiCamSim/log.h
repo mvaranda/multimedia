@@ -1,3 +1,15 @@
+/**********************************************************
+ *
+ *        M u l t i   C a m e r a   S i m u l a t o r
+ *
+ * License: proprietary
+ *
+ * Copyrights: Marcelo Varanda
+ * Initial date: October 2021
+ * http://www.varanda.ca
+ *
+ ***********************************************************/
+
 #ifndef LOG_H
 #define LOG_H
 
