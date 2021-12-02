@@ -5,6 +5,9 @@
 //-------------- gstreamer --------------
 #include "gst/gst.h"
 
+//#define VIDEO_SAMPLE "playbin uri=https://www.freedesktop.org/software/gstreamer-sdk/data/media/sintel_trailer-480p.webm"
+#define VIDEO_SAMPLE "playbin uri=file:///home/mvaranda/Videos/sintel_trailer-480p.webm"
+
 void player_thread(void)
 {
     GstElement *pipeline;
@@ -17,7 +20,7 @@ void player_thread(void)
     /* Build the pipeline */
     pipeline =
         gst_parse_launch
-        ("playbin uri=https://www.freedesktop.org/software/gstreamer-sdk/data/media/sintel_trailer-480p.webm",
+        (VIDEO_SAMPLE,
         NULL);
 
     /* Start playing */
