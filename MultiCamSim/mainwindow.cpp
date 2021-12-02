@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "log.h"
 #include <QLabel>
 
 //-------------- gstreamer --------------
@@ -18,18 +19,14 @@ void player_thread(void)
     gst_init (0, 0);
 
     /* Build the pipeline */
-    pipeline =
-        gst_parse_launch
-        (VIDEO_SAMPLE,
-        NULL);
+    pipeline = gst_parse_launch (VIDEO_SAMPLE, NULL);
 
     /* Start playing */
     gst_element_set_state (pipeline, GST_STATE_PLAYING);
 
     /* Wait until error or EOS */
     bus = gst_element_get_bus (pipeline);
-    msg =
-        gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, (GstMessageType)
+    msg = gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, (GstMessageType)
         (GST_MESSAGE_ERROR | GST_MESSAGE_EOS)); //  (GstBus * bus, GstClockTime timeout, GstMessageType types);
 
 
@@ -54,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     video_area_label = ui->video_area;
+    LOG("MultiCamSim started");
 }
 
 MainWindow::~MainWindow()
@@ -61,6 +59,25 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::updateVideoArea()
+{
+  QRect p = video_area_label->geometry();
+  QRect w = this->geometry();
+  int x = p.x() + w.x();
+  int y = p.y() + w.y();
+  LOG("x = %d, y = %d     width = %d, height = %d", x, y, p.width(), p.height());
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+  //LOG("resize");
+  updateVideoArea();
+}
+void MainWindow::moveEvent(QMoveEvent *event)
+{
+  //LOG("moveEvent");
+  updateVideoArea();
+}
 
 void MainWindow::on_bt_play_clicked()
 {

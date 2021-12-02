@@ -24,5 +24,9 @@ private:
     Ui::MainWindow *ui;
     QLabel * video_area_label;
     QThread *gst_thread;
+    void resizeEvent(QResizeEvent*);
+    void moveEvent(QMoveEvent *event);
+    void updateVideoArea();
+
 };
 #endif // MAINWINDOW_H
