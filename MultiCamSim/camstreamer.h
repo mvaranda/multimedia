@@ -25,10 +25,10 @@ public:
     ~CamStreamer();
 
     GstBus *getBus();
+    WId win_id;
 
 private:
     void run();
-    WId win_id;
     GstElement *pipeline;
     GstBus *bus;
 

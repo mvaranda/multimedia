@@ -11,6 +11,8 @@
  *
  ***********************************************************/
 
+// ref: https://github.com/GStreamer/qt-gstreamer/tree/master/examples/player
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "log.h"
