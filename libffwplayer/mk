@@ -1,0 +1,2 @@
+#gcc -o tutorial07 tutorial07.c -lavutil -lavformat -lavcodec -lswscale -lswresample -lz -lm  `sdl2-config --cflags --libs`
+gcc -o ffwplayer ffwplayer.c -lavutil -lavformat -lavcodec -lswscale -lswresample -lz -lm  `sdl2-config --cflags --libs`
