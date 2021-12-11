@@ -49,4 +49,69 @@ RX:
 gst-launch-1.0 -v udpsrc port=5000 caps = "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! decodebin ! videoconvert ! autovideosink
 
 
+FFMPEG
+======
+
+ref: https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu
+samples: https://github.com/mpenkov/ffmpeg-tutorial
+
+sudo apt-get update -qq && sudo apt-get -y install \
+  autoconf \
+  automake \
+  build-essential \
+  cmake \
+  git-core \
+  libass-dev \
+  libfreetype6-dev \
+  libgnutls28-dev \
+  libmp3lame-dev \
+  libsdl2-dev \
+  libtool \
+  libva-dev \
+  libvdpau-dev \
+  libvorbis-dev \
+  libxcb1-dev \
+  libxcb-shm0-dev \
+  libxcb-xfixes0-dev \
+  meson \
+  ninja-build \
+  pkg-config \
+  texinfo \
+  wget \
+  yasm \
+  zlib1g-dev
+
+sudo apt install libunistring-dev libaom-dev libdav1d-dev
+sudo apt-get install libx264-dev
+sudo apt-get install libx265-dev libnuma-dev
+sudo apt-get install libvpx-dev
+sudo apt-get install libfdk-aac-dev
+sudo apt-get install libopus-dev
+
+cd ~/ffmpeg_sources && \
+git -C aom pull 2> /dev/null || git clone --depth 1 https://aomedia.googlesource.com/aom && \
+mkdir -p aom_build && \
+cd aom_build && \
+PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_TESTS=OFF -DENABLE_NASM=on ../aom && \
+PATH="$HOME/bin:$PATH" make
+sudo make install
+
+sudo apt-get install python3-pip && \
+pip3 install --user meson
+
+cd ~/ffmpeg_sources && \
+git -C dav1d pull 2> /dev/null || git clone --depth 1 https://code.videolan.org/videolan/dav1d.git && \
+mkdir -p dav1d/build && \
+cd dav1d/build && \
+meson setup -Denable_tools=false -Denable_tests=false --default-library=static .. --prefix "$HOME/ffmpeg_build" --libdir="$HOME/ffmpeg_build/lib" && \
+ninja && \
+ninja install
+
+
+git clone --depth=1 https://github.com/OpenVisualCloud/SVT-AV1
+cd SVT-AV1
+cd Build
+cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+make -j $(nproc)
+sudo make install
 
