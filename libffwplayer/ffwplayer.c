@@ -169,7 +169,7 @@ typedef struct VideoState
     SDL_Texture *       texture;
     SDL_Renderer *      renderer;
     PacketQueue         videoq;
-    struct swsContext * sws_ctx;
+    struct SwsContext * sws_ctx;
     double              frame_timer;
     double              frame_last_pts;
     double              frame_last_delay;
@@ -729,7 +729,8 @@ int decode_thread(void * arg)
 
             if (ret < 0)
             {
-                fprintf(stderr, "%s: error while seeking\n", videoState->pFormatCtx->filename);
+                //fprintf(stderr, "%s: error while seeking\n", videoState->pFormatCtx->filename);
+                fprintf(stderr, "%s: error while seeking\n", videoState->pFormatCtx->url);
             }
             else
             {
@@ -2103,7 +2104,9 @@ static void packet_queue_flush(PacketQueue * queue)
     for (pkt = queue->first_pkt; pkt != NULL; pkt = pkt1)
     {
         pkt1 = pkt->next;
-        av_free_packet(&pkt->pkt);
+        //av_free_packet(&pkt->pkt);
+        av_packet_unref(&pkt->pkt);
+
         av_freep(&pkt);
     }
 
