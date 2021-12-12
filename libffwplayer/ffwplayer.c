@@ -835,7 +835,7 @@ void * format_demux_thread(void * arg)
         if (videoState->audioq.size > MAX_AUDIOQ_SIZE || videoState->videoq.size > MAX_VIDEOQ_SIZE)
         {
             // wait for audio and video queues to decrease size
-            SDL_Delay(10);
+            usleep(1000 *  10);
 
             continue;
         }
@@ -853,7 +853,7 @@ void * format_demux_thread(void * arg)
             else if (videoState->pFormatCtx->pb->error == 0)
             {
                 // no read error; wait for user input
-                SDL_Delay(10);
+                usleep(1000 *  10);
 
                 continue;
             }
@@ -883,7 +883,7 @@ void * format_demux_thread(void * arg)
     // wait for the rest of the program to end
     while (!videoState->quit)
     {
-        SDL_Delay(100);
+        usleep(1000 *  100);
     }
 
     // close the opened input AVFormatContext
