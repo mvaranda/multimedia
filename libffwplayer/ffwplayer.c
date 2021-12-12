@@ -31,6 +31,7 @@
 #include <libswresample/swresample.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_thread.h>
+#include <pthread.h>
 
 /**
  * Prevents SDL from overriding main().
@@ -115,8 +116,11 @@ typedef struct PacketQueue
     AVPacketList *  last_pkt;
     int             nb_packets;
     int             size;
-    SDL_mutex *     mutex;
-    SDL_cond *      cond;
+    // SDL_mutex *     mutex;
+    // SDL_cond *      cond;
+    pthread_mutex_t mutex;
+    pthread_cond_t  cond;
+
 } PacketQueue;
 
 /**
@@ -188,8 +192,10 @@ typedef struct VideoState
     int                 pictq_size;
     int                 pictq_rindex;
     int                 pictq_windex;
-    SDL_mutex *         pictq_mutex;
-    SDL_cond *          pictq_cond;
+    // SDL_mutex *         pictq_mutex;
+    // SDL_cond *          pictq_cond;
+    pthread_mutex_t     pictq_mutex;
+    pthread_cond_t      pictq_cond;
 
     /**
      * AV Sync.
@@ -275,7 +281,8 @@ SDL_Window * screen;
 /**
  * Global SDL_Surface mutex reference.
  */
-SDL_mutex * screen_mutex;
+//SDL_mutex * screen_mutex;
+pthread_mutex_t screen_mutex;
 
 /**
  * Global VideoState reference.
@@ -431,8 +438,10 @@ int main(int argc, char * argv[])
     videoState->maxFramesToDecode = strtol(argv[2], &pEnd, 10);
 
     // initialize locks for the display buffer (pictq)
-    videoState->pictq_mutex = SDL_CreateMutex();
-    videoState->pictq_cond = SDL_CreateCond();
+    // videoState->pictq_mutex = SDL_CreateMutex();
+    // videoState->pictq_cond = SDL_CreateCond();
+    pthread_mutex_init(&videoState->pictq_mutex, NULL);
+    pthread_cond_init (&videoState->pictq_cond, NULL);
 
     // launch our threads by pushing an SDL_event of type FF_REFRESH_EVENT
     schedule_refresh(videoState, 100);
@@ -527,8 +536,8 @@ int main(int argc, char * argv[])
                  * queues are waiting for more data.  Make them stop waiting and
                  * terminate normally.
                  */
-                SDL_CondSignal(videoState->audioq.cond);
-                SDL_CondSignal(videoState->videoq.cond);
+                pthread_cond_signal(&videoState->audioq.cond);
+                pthread_cond_signal(&videoState->videoq.cond);
 
                 SDL_Quit();
             }
@@ -978,7 +987,8 @@ int stream_component_open(VideoState * videoState, int stream_index)
             SDL_GL_SetSwapInterval(1);
 
             // initialize global SDL_Surface mutex reference
-            screen_mutex = SDL_CreateMutex();
+            //screen_mutex = SDL_CreateMutex();
+            pthread_mutex_init(&screen_mutex, NULL);
 
             // create a 2D rendering context for the SDL_Window
             videoState->renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
@@ -1029,7 +1039,7 @@ void alloc_picture(void * userdata)
     }
 
     // lock global screen mutex
-    SDL_LockMutex(screen_mutex);
+    pthread_mutex_lock(&screen_mutex);
 
     // get the size in bytes required to store an image with the given parameters
     int numBytes;
@@ -1064,7 +1074,7 @@ void alloc_picture(void * userdata)
     );
 
     // unlock global screen mutex
-    SDL_UnlockMutex(screen_mutex);
+    pthread_mutex_unlock(&screen_mutex);
 
     // update VideoPicture struct fields
     videoPicture->width = videoState->video_ctx->width;
@@ -1086,16 +1096,16 @@ void alloc_picture(void * userdata)
 int queue_picture(VideoState * videoState, AVFrame * pFrame, double pts)
 {
     // lock VideoState->pictq mutex
-    SDL_LockMutex(videoState->pictq_mutex);
+    pthread_mutex_lock(&videoState->pictq_mutex);
 
     // wait until we have space for a new pic in VideoState->pictq
     while (videoState->pictq_size >= VIDEO_PICTURE_QUEUE_SIZE && !videoState->quit)
     {
-        SDL_CondWait(videoState->pictq_cond, videoState->pictq_mutex);
+        pthread_cond_wait(&videoState->pictq_cond, &videoState->pictq_mutex);
     }
 
     // unlock VideoState->pictq mutex
-    SDL_UnlockMutex(videoState->pictq_mutex);
+    pthread_mutex_unlock(&videoState->pictq_mutex);
 
     // check global quit flag
     if (videoState->quit)
@@ -1163,13 +1173,13 @@ int queue_picture(VideoState * videoState, AVFrame * pFrame, double pts)
         }
 
         // lock VideoPicture queue
-        SDL_LockMutex(videoState->pictq_mutex);
+        pthread_mutex_lock(&videoState->pictq_mutex);
 
         // increase VideoPicture queue size
         videoState->pictq_size++;
 
         // unlock VideoPicture queue
-        SDL_UnlockMutex(videoState->pictq_mutex);
+        pthread_mutex_unlock(&videoState->pictq_mutex);
     }
 
     return 0;
@@ -1639,16 +1649,16 @@ void video_refresh_timer(void * userdata)
             }
 
             // lock VideoPicture queue mutex
-            SDL_LockMutex(videoState->pictq_mutex);
+            pthread_mutex_lock(&videoState->pictq_mutex);
 
             // decrease VideoPicture queue size
             videoState->pictq_size--;
 
             // notify other threads waiting for the VideoPicture queue
-            SDL_CondSignal(videoState->pictq_cond);
+            pthread_cond_signal(&videoState->pictq_cond);
 
             // unlock VideoPicture queue mutex
-            SDL_UnlockMutex(videoState->pictq_mutex);
+            pthread_mutex_unlock(&videoState->pictq_mutex);
         }
     }
     else
@@ -1882,7 +1892,7 @@ void video_display(VideoState * videoState)
             rect.h = h;
 
             // lock screen mutex
-            SDL_LockMutex(screen_mutex);
+            pthread_mutex_lock(&screen_mutex);
 
             // update the texture with the new pixel data
             SDL_UpdateYUVTexture(
@@ -1906,7 +1916,7 @@ void video_display(VideoState * videoState)
             SDL_RenderPresent(videoState->renderer);
 
             // unlock screen mutex
-            SDL_UnlockMutex(screen_mutex);
+            pthread_mutex_unlock(&screen_mutex);
         }
         else
         {
@@ -1936,8 +1946,9 @@ void packet_queue_init(PacketQueue * q)
     );
 
     // Returns the initialized and unlocked mutex or NULL on failure
-    q->mutex = SDL_CreateMutex();
-    if (!q->mutex)
+    //q->mutex = SDL_CreateMutex();
+    //if (!q->mutex)
+    if (pthread_mutex_init(&q->mutex, NULL) != 0)
     {
         // could not create mutex
         printf("SDL_CreateMutex Error: %s.\n", SDL_GetError());
@@ -1945,8 +1956,9 @@ void packet_queue_init(PacketQueue * q)
     }
 
     // Returns a new condition variable or NULL on failure
-    q->cond = SDL_CreateCond();
-    if (!q->cond)
+    //q->cond = SDL_CreateCond();
+    //if (!q->cond)
+    if (pthread_cond_init(&q->cond, NULL) != 0)
     {
         // could not create condition variable
         printf("SDL_CreateCond Error: %s.\n", SDL_GetError());
@@ -1981,7 +1993,7 @@ int packet_queue_put(PacketQueue * queue, AVPacket * packet)
     avPacketList->next = NULL;
 
     // lock mutex
-    SDL_LockMutex(queue->mutex);
+    pthread_mutex_lock(&queue->mutex);
 
     // check the queue is empty
     if (!queue->last_pkt)
@@ -2005,10 +2017,10 @@ int packet_queue_put(PacketQueue * queue, AVPacket * packet)
     queue->size += avPacketList->pkt.size;
 
     // notify packet_queue_get which is waiting that a new packet is available
-    SDL_CondSignal(queue->cond);
+    pthread_cond_signal(&queue->cond);
 
     // unlock mutex
-    SDL_UnlockMutex(queue->mutex);
+    pthread_mutex_unlock(&queue->mutex);
 
     return 0;
 }
@@ -2031,7 +2043,7 @@ static int packet_queue_get(PacketQueue * queue, AVPacket * packet, int blocking
     AVPacketList * avPacketList;
 
     // lock mutex
-    SDL_LockMutex(queue->mutex);
+    pthread_mutex_lock(&queue->mutex);
 
     for (;;)
     {
@@ -2081,12 +2093,12 @@ static int packet_queue_get(PacketQueue * queue, AVPacket * packet, int blocking
         else
         {
             // unlock mutex and wait for cond signal, then lock mutex again
-            SDL_CondWait(queue->cond, queue->mutex);
+            pthread_cond_wait(&queue->cond, &queue->mutex);
         }
     }
 
     // unlock mutex
-    SDL_UnlockMutex(queue->mutex);
+    pthread_mutex_unlock(&queue->mutex);
 
     return ret;
 }
@@ -2099,7 +2111,7 @@ static void packet_queue_flush(PacketQueue * queue)
 {
     AVPacketList *pkt, *pkt1;
 
-    SDL_LockMutex(queue->mutex);
+    pthread_mutex_lock(&queue->mutex);
 
     for (pkt = queue->first_pkt; pkt != NULL; pkt = pkt1)
     {
@@ -2115,7 +2127,7 @@ static void packet_queue_flush(PacketQueue * queue)
     queue->nb_packets = 0;
     queue->size = 0;
 
-    SDL_UnlockMutex(queue->mutex);
+    pthread_mutex_unlock(&queue->mutex);
 }
 
 /**
