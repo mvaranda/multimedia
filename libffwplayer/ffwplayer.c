@@ -217,7 +217,7 @@ typedef struct VideoState
     /**
      * Threads.
      */
-    pthread_t    decode_tid;
+    pthread_t    format_demux_tid;
     pthread_t    video_tid;
 
     /**
@@ -301,7 +301,7 @@ AVPacket flush_pkt;
  */
 void printHelpMenu();
 
-void * decode_thread(void * arg);
+void * format_demux_thread(void * arg);
 
 int stream_component_open(
         VideoState * videoState,
@@ -489,7 +489,7 @@ int main(int argc, char * argv[])
         return -1;
     }
 
-    // the global VideoState reference will be set in decode_thread() to this pointer
+    // the global VideoState reference will be set in format_demux_thread() to this pointer
     VideoState * videoState = NULL;
 
     // allocate memory for the VideoState and zero it out
@@ -514,17 +514,17 @@ int main(int argc, char * argv[])
     videoState->av_sync_type = DEFAULT_AV_SYNC_TYPE;
 
     // start the decoding thread to read data from the AVFormatContext
-    // videoState->decode_tid = SDL_CreateThread(decode_thread, "Decoding Thread", videoState);
-    videoState->decode_tid =  ffw_create_thread( 
-                                    "decode_thread",        // name
+    // videoState->format_demux_tid = SDL_CreateThread(format_demux_thread, "Decoding Thread", videoState);
+    videoState->format_demux_tid = ffw_create_thread( 
+                                    "format_demux_thread",  // name
                                     0,                      // stack size
                                     20,                     //int priority,
-                                    decode_thread,          //void * ( *thread_entry)(void *),
+                                    format_demux_thread,    //void * ( *thread_entry)(void *),
                                     videoState,
                                     true);                  // detached
 
     // check the decode thread was correctly started
-    if(videoState->decode_tid == -1)
+    if(videoState->format_demux_tid == -1)
     {
         LOG_E("Could not start decoding thread.\n");
 
@@ -663,7 +663,7 @@ void printHelpMenu()
  *
  * @return      < 0 in case of error, 0 otherwise.
  */
-void * decode_thread(void * arg)
+void * format_demux_thread(void * arg)
 {
     // retrieve global VideoState reference
     VideoState * videoState = (VideoState *)arg;
@@ -1270,7 +1270,7 @@ int queue_picture(VideoState * videoState, AVFrame * pFrame, double pts)
  * the video packets into a frame, and then calls the queue_picture() function to
  * put the processed frame into the picture queue.
  *
- * @param   arg the data pointer passed to the SDL_Thread callback function.
+ * @param   arg the data pointer passed by the thread callback function.
  *
  * @return
  */
