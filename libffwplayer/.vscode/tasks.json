@@ -10,7 +10,7 @@
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
-                "-lavutil", "-lavformat",
+                "-pthread", "-lavutil", "-lavformat",
                 "-lavcodec", "-lswscale", "-lswresample", "-lz",  "-lm",
                 "-I/usr/include/SDL2", "-D_REENTRANT", "-lSDL2"
             ],
