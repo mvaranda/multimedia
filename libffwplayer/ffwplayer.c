@@ -461,10 +461,13 @@ static pthread_t ffw_create_thread(const char * name,
  *
  * @return          execution exit code.
  */
+// argv[1] has the URL
+// argv[2] has number of frames
+
 int main(int argc, char * argv[])
 {
   // if the given number of command line arguments is wrong
-  if ( argc != 3 ) {
+  if ( argc < 2 ) {
     // print help menu and exit
     printHelpMenu();
     return -1;
@@ -493,9 +496,12 @@ int main(int argc, char * argv[])
   // copy the file name input by the user to the VideoState structure
   av_strlcpy(videoState->filename, argv[1], sizeof(videoState->filename));
 
+
   // parse max frames to decode input by the user
   char * pEnd;
-  videoState->maxFramesToDecode = strtol(argv[2], &pEnd, 10);
+  if (argc >= 3) {
+    videoState->maxFramesToDecode = strtol(argv[2], &pEnd, 10);
+  }
 
   // initialize locks for the display buffer (pictq)
   pthread_mutex_init(&videoState->pictq_mutex, NULL);
@@ -556,8 +562,8 @@ int main(int argc, char * argv[])
       {
         printf("Seek...\n");
         int64_t pos = get_master_clock(global_video_state);
-        pos += 60;
-        stream_seek(global_video_state, (int64_t)(pos * AV_TIME_BASE), 60);
+        pos += 60.0;
+        stream_seek(global_video_state, (int64_t)(pos * AV_TIME_BASE), 60.0);
         break;
       }
       default:
@@ -1887,7 +1893,10 @@ static void video_display(VideoState * videoState)
     y = (screen_height - h);
 
     // check the number of frames to decode was not exceeded
-    if (++videoState->currentFrameIndex < videoState->maxFramesToDecode) {
+    videoState->currentFrameIndex++;
+    if ((videoState->maxFramesToDecode == 0) || 
+      (videoState->currentFrameIndex < videoState->maxFramesToDecode)) {
+//    if (videoState->currentFrameIndex < videoState->maxFramesToDecode) {
       if (_DEBUG_) {
         // dump information about the frame being rendered
         printf(
@@ -2170,6 +2179,7 @@ void audio_callback(void * userdata, Uint8 * stream, int len)
 
       // if error
       if (audio_size < 0) {
+        printf("audio error\n");
         // output silence
         videoState->audio_buf_size = 1024;
 
@@ -2627,9 +2637,11 @@ static AudioResamplingState * getAudioResampling(uint64_t channel_layout)
  */
 static void stream_seek(VideoState * videoState, int64_t pos, int rel)
 {
+  pthread_mutex_lock(&videoState->screen_mutex);
   if (!videoState->seek_req) {
     videoState->seek_pos = pos;
     videoState->seek_flags = rel < 0 ? AVSEEK_FLAG_BACKWARD : 0;
     videoState->seek_req = 1;
   }
+  pthread_mutex_unlock(&videoState->screen_mutex);
 }
