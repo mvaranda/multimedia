@@ -529,6 +529,45 @@ int main(int argc, char * argv[])
   av_init_packet(&videoState->flush_pkt);
   videoState->flush_pkt.data = "FLUSH";
 
+#if 1
+  char c, line[32];
+  int line_idx = 0;
+  bool user_quit = false;
+  memset(line, 0, sizeof(line));
+  while( ! user_quit) {
+    scanf("%c", &c);
+    if (c != '\n') {
+      if (line_idx >= sizeof(line) - 1) {
+        line_idx = 0;
+        memset(line, 0, sizeof(line));
+      }
+      line[line_idx++] = c;
+      continue;
+    }
+
+    switch(line[0]) {
+      case 'q':
+      case 'Q':
+        printf("Exiting...\n");
+        user_quit = true;
+        break;
+
+      case 's':
+      {
+        printf("Seek...\n");
+        int64_t pos = get_master_clock(global_video_state);
+        pos += 60;
+        stream_seek(global_video_state, (int64_t)(pos * AV_TIME_BASE), 60);
+        break;
+      }
+      default:
+        printf("invalid option\n");
+        break;
+    }
+    line_idx = 0;
+    memset(line, 0, sizeof(line));
+  } 
+#else
   // infinite loop waiting for fired events
   SDL_Event event;
   for (;;) {
@@ -621,6 +660,7 @@ int main(int argc, char * argv[])
       break;
     }
   }
+#endif
 
   // clean up memory
   av_free(videoState);
@@ -1720,8 +1760,9 @@ void * video_timer_thread(void * arg)
     }
     if (videoState->video_timer_delay == 0) {
       usleep(1000);
-      continue;
+      //continue;
     }
+    
     usleep(videoState->video_timer_delay * 1000);
     video_refresher(videoState); 
   }
