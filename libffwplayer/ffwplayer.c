@@ -240,6 +240,9 @@ typedef struct VideoState {
   // VideoState * global_video_state;
   AVPacket flush_pkt;
 
+  pthread_t video_timer_tid;
+  unsigned int video_timer_delay;
+
 } VideoState;
 
   VideoState * global_video_state;
@@ -483,6 +486,10 @@ int main(int argc, char * argv[])
   // allocate memory for the VideoState and zero it out
   videoState = av_mallocz(sizeof(VideoState));
 
+  videoState->video_timer_tid = -1;
+  // set global VideoState reference
+  global_video_state = videoState;
+
   // copy the file name input by the user to the VideoState structure
   av_strlcpy(videoState->filename, argv[1], sizeof(videoState->filename));
 
@@ -491,8 +498,6 @@ int main(int argc, char * argv[])
   videoState->maxFramesToDecode = strtol(argv[2], &pEnd, 10);
 
   // initialize locks for the display buffer (pictq)
-  // videoState->pictq_mutex = SDL_CreateMutex();
-  // videoState->pictq_cond = SDL_CreateCond();
   pthread_mutex_init(&videoState->pictq_mutex, NULL);
   pthread_cond_init(&videoState->pictq_cond, NULL);
 
@@ -662,8 +667,8 @@ static void * format_demux_thread(void * arg)
   videoState->videoStream = -1;
   videoState->audioStream = -1;
 
-  // set global VideoState reference
-  global_video_state = videoState;
+  // // set global VideoState reference
+  // global_video_state = videoState;
 
   // set the AVFormatContext for the global VideoState reference
   videoState->pFormatCtx = pFormatCtx;
@@ -1705,6 +1710,23 @@ static double get_master_clock(VideoState * videoState)
   }
 }
 
+void * video_timer_thread(void * arg)
+{
+  VideoState * videoState = (VideoState *) arg;
+
+  while(1) {
+    if (global_video_state->quit) {
+      break;
+    }
+    if (videoState->video_timer_delay == 0) {
+      usleep(1000);
+      continue;
+    }
+    usleep(videoState->video_timer_delay * 1000);
+    video_refresher(videoState); 
+  }
+}
+
 /**
  * Schedules video updates - every time we call this function, it will set the
  * timer, which will trigger an event, which will have our main() function in turn
@@ -1716,6 +1738,19 @@ static double get_master_clock(VideoState * videoState)
  */
 static void schedule_refresh(VideoState * videoState, Uint32 delay)
 {
+#if 1
+  videoState->video_timer_delay = delay;
+  if (videoState->video_timer_tid == -1) {
+    videoState->video_timer_tid = ffw_create_thread(
+      "format_demux_thread",                                  // name
+      0,                                                      // stack size
+      20,                                                     // int priority,
+      video_timer_thread,                                     // void * ( *thread_entry)(void *),
+      videoState,
+      true);                                                  // detached
+  }
+
+#else
   // schedule an SDL timer
   int ret = SDL_AddTimer(delay, sdl_refresh_timer_cb, videoState);
 
@@ -1723,6 +1758,7 @@ static void schedule_refresh(VideoState * videoState, Uint32 delay)
   if (ret == 0) {
     LOG("Could not schedule refresh callback: %s.\n.", SDL_GetError());
   }
+#endif
 }
 
 /**
