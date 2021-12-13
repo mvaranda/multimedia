@@ -39,6 +39,8 @@
 #define LOG   printf
 #define LOG_E printf
 
+#define STACKSIZE__DEFAULT   PTHREAD_STACK_MIN                      /**< 16K set by <limits.h>  (Linux default is 8M) */
+#define DEFAULT_SCHED_POLICY SCHED_RR
 
 /**
  * Prevents SDL from overriding main().
@@ -294,24 +296,24 @@ AVPacket flush_pkt;
 /**
  * Methods declaration.
  */
-void printHelpMenu();
+static void printHelpMenu();
 
-void * format_demux_thread(void * arg);
+static void * format_demux_thread(void * arg);
 
-int stream_component_open(
+static int stream_component_open(
   VideoState * videoState,
   int stream_index
   );
 
-void alloc_picture(void * userdata);
+static void alloc_picture(void * userdata);
 
-int queue_picture(
+static int queue_picture(
   VideoState * videoState,
   AVFrame * pFrame,
   double pts
   );
 
-void * video_thread(void * arg);
+static void * video_thread(void * arg);
 
 static int64_t guess_correct_pts(
   AVCodecContext * ctx,
@@ -319,27 +321,27 @@ static int64_t guess_correct_pts(
   int64_t dts
   );
 
-double synchronize_video(
+static double synchronize_video(
   VideoState * videoState,
   AVFrame * src_frame,
   double pts
   );
 
-int synchronize_audio(
+static int synchronize_audio(
   VideoState * videoState,
   short * samples,
   int samples_size
   );
 
-void video_refresh_timer(void * userdata);
+static void video_refresher(void * userdata);
 
-double get_audio_clock(VideoState * videoState);
+static double get_audio_clock(VideoState * videoState);
 
-double get_video_clock(VideoState * videoState);
+static double get_video_clock(VideoState * videoState);
 
-double get_external_clock(VideoState * videoState);
+static double get_external_clock(VideoState * videoState);
 
-double get_master_clock(VideoState * videoState);
+static double get_master_clock(VideoState * videoState);
 
 static void schedule_refresh(
   VideoState * videoState,
@@ -351,11 +353,11 @@ static Uint32 sdl_refresh_timer_cb(
   void * param
   );
 
-void video_display(VideoState * videoState);
+static void video_display(VideoState * videoState);
 
-void packet_queue_init(PacketQueue * q);
+static void packet_queue_init(PacketQueue * q);
 
-int packet_queue_put(
+static int packet_queue_put(
   PacketQueue * queue,
   AVPacket * packet
   );
@@ -374,7 +376,7 @@ void audio_callback(
   int len
   );
 
-int audio_decode_frame(
+static int audio_decode_frame(
   VideoState * videoState,
   uint8_t * audio_buf,
   int buf_size,
@@ -388,13 +390,11 @@ static int audio_resampling(
   uint8_t * out_buf
   );
 
-AudioResamplingState * getAudioResampling(uint64_t channel_layout);
+static AudioResamplingState * getAudioResampling(uint64_t channel_layout);
 
-void stream_seek(VideoState * videoState, int64_t pos, int rel);
+static void stream_seek(VideoState * videoState, int64_t pos, int rel);
 
-#define STACKSIZE__DEFAULT   PTHREAD_STACK_MIN                      /**< 16K set by <limits.h>  (Linux default is 8M) */
-#define DEFAULT_SCHED_POLICY SCHED_RR
-int pthread_setname_np(pthread_t thread, const char * name);
+extern int pthread_setname_np(pthread_t thread, const char * name);
 
 static pthread_t ffw_create_thread(const char * name,
                                    int stackSize,
@@ -604,7 +604,7 @@ int main(int argc, char * argv[])
 
       case FF_REFRESH_EVENT:
       {
-        video_refresh_timer(event.user.data1);
+        video_refresher(event.user.data1);
       }
       break;
 
@@ -631,7 +631,7 @@ int main(int argc, char * argv[])
 /**
  * Print help menu containing usage information.
  */
-void printHelpMenu()
+static void printHelpMenu()
 {
   LOG("Invalid arguments.\n\n");
   LOG("Usage: ./tutorial07 <filename> <max-frames-to-decode>\n\n");
@@ -649,7 +649,7 @@ void printHelpMenu()
  *
  * @return      < 0 in case of error, 0 otherwise.
  */
-void * format_demux_thread(void * arg)
+static void * format_demux_thread(void * arg)
 {
   // retrieve global VideoState reference
   VideoState * videoState = (VideoState *)arg;
@@ -865,7 +865,7 @@ void * format_demux_thread(void * arg)
  *
  * @return                  < 0 in case of error, 0 otherwise.
  */
-int stream_component_open(VideoState * videoState, int stream_index)
+static int stream_component_open(VideoState * videoState, int stream_index)
 {
   // retrieve file I/O context
   AVFormatContext * pFormatCtx = videoState->pFormatCtx;
@@ -1040,7 +1040,7 @@ int stream_component_open(VideoState * videoState, int stream_index)
  *
  * @param   userdata    the global VideoState reference.
  */
-void alloc_picture(void * userdata)
+static void alloc_picture(void * userdata)
 {
   // retrieve global VideoState reference.
   VideoState * videoState = (VideoState *)userdata;
@@ -1111,7 +1111,7 @@ void alloc_picture(void * userdata)
  *
  * @return              < 0 in case the global quit flag is set, 0 otherwise.
  */
-int queue_picture(VideoState * videoState, AVFrame * pFrame, double pts)
+static int queue_picture(VideoState * videoState, AVFrame * pFrame, double pts)
 {
   // lock VideoState->pictq mutex
   pthread_mutex_lock(&videoState->pictq_mutex);
@@ -1208,7 +1208,7 @@ int queue_picture(VideoState * videoState, AVFrame * pFrame, double pts)
  *
  * @return
  */
-void * video_thread(void * arg)
+static void * video_thread(void * arg)
 {
   // retrieve global VideoState reference
   VideoState * videoState = (VideoState *)arg;
@@ -1359,7 +1359,7 @@ static int64_t guess_correct_pts(AVCodecContext * ctx, int64_t reordered_pts, in
  *
  * @return              the updated (synchronized) pts for the given video AVFrame.
  */
-double synchronize_video(VideoState * videoState, AVFrame * src_frame, double pts)
+static double synchronize_video(VideoState * videoState, AVFrame * src_frame, double pts)
 {
   double frame_delay;
 
@@ -1401,7 +1401,7 @@ double synchronize_video(VideoState * videoState, AVFrame * src_frame, double pt
  *
  * @return
  */
-int synchronize_audio(VideoState * videoState, short * samples, int samples_size)
+static int synchronize_audio(VideoState * videoState, short * samples, int samples_size)
 {
   int n;
   double ref_clock;
@@ -1493,7 +1493,7 @@ int synchronize_audio(VideoState * videoState, short * samples, int samples_size
  *
  * @param   userdata    SDL_UserEvent->data1;   User defined data pointer.
  */
-void video_refresh_timer(void * userdata)
+static void video_refresher(void * userdata)
 {
   // LOG_E("\n!!!VIDEO_REFRESH_TIMER CALLED!!!\n");
 
@@ -1639,7 +1639,7 @@ void video_refresh_timer(void * userdata)
  *
  * @return              the current audio clock reference value.
  */
-double get_audio_clock(VideoState * videoState)
+static double get_audio_clock(VideoState * videoState)
 {
   double pts = videoState->audio_clock;
 
@@ -1667,7 +1667,7 @@ double get_audio_clock(VideoState * videoState)
  *
  * @return              the current video clock reference value.
  */
-double get_video_clock(VideoState * videoState)
+static double get_video_clock(VideoState * videoState)
 {
   double delta = (av_gettime() - videoState->video_current_pts_time) / 1000000.0;
 
@@ -1680,7 +1680,7 @@ double get_video_clock(VideoState * videoState)
  *
  * @return  the current external clock reference value.
  */
-double get_external_clock(VideoState * videoState)
+static double get_external_clock(VideoState * videoState)
 {
   videoState->external_clock_time = av_gettime();
   videoState->external_clock = videoState->external_clock_time / 1000000.0;
@@ -1696,7 +1696,7 @@ double get_external_clock(VideoState * videoState)
  *
  * @return              the reference clock according to the chosen AV sync type.
  */
-double get_master_clock(VideoState * videoState)
+static double get_master_clock(VideoState * videoState)
 {
   if (videoState->av_sync_type == AV_SYNC_VIDEO_MASTER) {
     return get_video_clock(videoState);
@@ -1766,7 +1766,7 @@ static Uint32 sdl_refresh_timer_cb(Uint32 interval, void * param)
  *
  * @param   videoState  the global VideoState reference.
  */
-void video_display(VideoState * videoState)
+static void video_display(VideoState * videoState)
 {
   // reference for the next VideoPicture to be displayed
   VideoPicture * videoPicture;
@@ -1882,7 +1882,7 @@ void video_display(VideoState * videoState)
  *
  * @param q the PacketQueue to be initialized.
  */
-void packet_queue_init(PacketQueue * q)
+static void packet_queue_init(PacketQueue * q)
 {
   // alloc memory for the audio queue
   memset(
@@ -1918,7 +1918,7 @@ void packet_queue_init(PacketQueue * q)
  *
  * @return          0 if the AVPacket is correctly inserted in the given PacketQueue.
  */
-int packet_queue_put(PacketQueue * queue, AVPacket * packet)
+static int packet_queue_put(PacketQueue * queue, AVPacket * packet)
 {
   // alloc the new AVPacketList to be inserted in the audio PacketQueue
   AVPacketList * avPacketList;
@@ -2145,7 +2145,7 @@ void audio_callback(void * userdata, Uint8 * stream, int len)
  *
  * @return              0 if everything goes well, -1 in case of error or quit
  */
-int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int buf_size, double * pts_ptr)
+static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int buf_size, double * pts_ptr)
 {
   // allocate AVPacket to read from the audio PacketQueue (audioq)
   AVPacket * avPacket = av_packet_alloc();
@@ -2529,7 +2529,7 @@ static int audio_resampling(VideoState * videoState, AVFrame * decoded_audio_fra
  * @return                  the allocated and initialized AudioResamplingState
  *                          struct instance.
  */
-AudioResamplingState * getAudioResampling(uint64_t channel_layout)
+static AudioResamplingState * getAudioResampling(uint64_t channel_layout)
 {
   AudioResamplingState * audioResampling = av_mallocz(sizeof(AudioResamplingState));
 
@@ -2553,7 +2553,7 @@ AudioResamplingState * getAudioResampling(uint64_t channel_layout)
  * @param pos
  * @param rel
  */
-void stream_seek(VideoState * videoState, int64_t pos, int rel)
+static void stream_seek(VideoState * videoState, int64_t pos, int rel)
 {
   if (!videoState->seek_req) {
     videoState->seek_pos = pos;
