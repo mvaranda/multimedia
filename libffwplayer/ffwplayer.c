@@ -234,8 +234,15 @@ typedef struct VideoState {
    */
   long maxFramesToDecode;
   int currentFrameIndex;
+
+  SDL_Window * screen;
+  pthread_mutex_t screen_mutex;
+  // VideoState * global_video_state;
+  AVPacket flush_pkt;
+
 } VideoState;
 
+  VideoState * global_video_state;
 /**
  * Struct used to hold data fields used for audio resampling.
  */
@@ -276,22 +283,10 @@ enum {
 /**
  * Global SDL_Window reference.
  */
-SDL_Window * screen;
-
-/**
- * Global SDL_Surface mutex reference.
- */
-pthread_mutex_t screen_mutex;
-
-/**
- * Global VideoState reference.
- */
-VideoState * global_video_state;
-
-/**
- *
- */
-AVPacket flush_pkt;
+// SDL_Window * screen;
+// pthread_mutex_t screen_mutex;
+// VideoState * global_video_state;
+// AVPacket flush_pkt;
 
 /**
  * Methods declaration.
@@ -526,8 +521,8 @@ int main(int argc, char * argv[])
     return -1;
   }
 
-  av_init_packet(&flush_pkt);
-  flush_pkt.data = "FLUSH";
+  av_init_packet(&videoState->flush_pkt);
+  videoState->flush_pkt.data = "FLUSH";
 
   // infinite loop waiting for fired events
   SDL_Event event;
@@ -781,12 +776,12 @@ static void * format_demux_thread(void * arg)
       } else {
         if (videoState->videoStream >= 0) {
           packet_queue_flush(&videoState->videoq);
-          packet_queue_put(&videoState->videoq, &flush_pkt);
+          packet_queue_put(&videoState->videoq, &videoState->flush_pkt);
         }
 
         if (videoState->audioStream >= 0) {
           packet_queue_flush(&videoState->audioq);
-          packet_queue_put(&videoState->audioq, &flush_pkt);
+          packet_queue_put(&videoState->audioq, &videoState->flush_pkt);
         }
       }
 
@@ -987,7 +982,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
                                            );
 
       // create a window with the specified position, dimensions, and flags.
-      screen = SDL_CreateWindow(
+      videoState->screen = SDL_CreateWindow(
         "FFmpeg SDL Video Player",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
@@ -997,7 +992,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         );
 
       // check window was correctly created
-      if (!screen) {
+      if (!videoState->screen) {
         LOG("SDL: could not create window - exiting.\n");
         return -1;
       }
@@ -1007,10 +1002,10 @@ static int stream_component_open(VideoState * videoState, int stream_index)
 
       // initialize global SDL_Surface mutex reference
       // screen_mutex = SDL_CreateMutex();
-      pthread_mutex_init(&screen_mutex, NULL);
+      pthread_mutex_init(&videoState->screen_mutex, NULL);
 
       // create a 2D rendering context for the SDL_Window
-      videoState->renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
+      videoState->renderer = SDL_CreateRenderer(videoState->screen, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
 
       // create a texture for a rendering context
       videoState->texture = SDL_CreateTexture(
@@ -1058,7 +1053,7 @@ static void alloc_picture(void * userdata)
   }
 
   // lock global screen mutex
-  pthread_mutex_lock(&screen_mutex);
+  pthread_mutex_lock(&videoState->screen_mutex);
 
   // get the size in bytes required to store an image with the given parameters
   int numBytes;
@@ -1092,7 +1087,7 @@ static void alloc_picture(void * userdata)
     );
 
   // unlock global screen mutex
-  pthread_mutex_unlock(&screen_mutex);
+  pthread_mutex_unlock(&videoState->screen_mutex);
 
   // update VideoPicture struct fields
   videoPicture->width = videoState->video_ctx->width;
@@ -1243,7 +1238,7 @@ static void * video_thread(void * arg)
       break;
     }
 
-    if (packet->data == flush_pkt.data) {
+    if (packet->data == videoState->flush_pkt.data) {
       avcodec_flush_buffers(videoState->video_ctx);
       continue;
     }
@@ -1793,7 +1788,7 @@ static void video_display(VideoState * videoState)
     // get the size of a window's client area
     int screen_width;
     int screen_height;
-    SDL_GetWindowSize(screen, &screen_width, &screen_height);
+    SDL_GetWindowSize(videoState->screen, &screen_width, &screen_height);
 
     // global SDL_Surface height
     h = screen_height;
@@ -1840,7 +1835,7 @@ static void video_display(VideoState * videoState)
       rect.h = h;
 
       // lock screen mutex
-      pthread_mutex_lock(&screen_mutex);
+      pthread_mutex_lock(&videoState->screen_mutex);
 
       // update the texture with the new pixel data
       SDL_UpdateYUVTexture(
@@ -1864,7 +1859,7 @@ static void video_display(VideoState * videoState)
       SDL_RenderPresent(videoState->renderer);
 
       // unlock screen mutex
-      pthread_mutex_unlock(&screen_mutex);
+      pthread_mutex_unlock(&videoState->screen_mutex);
     } else {
       // create an SDLEvent of type FF_QUIT_EVENT
       SDL_Event event;
@@ -2271,7 +2266,7 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
       return -1;
     }
 
-    if (avPacket->data == flush_pkt.data) {
+    if (avPacket->data == videoState->flush_pkt.data) {
       avcodec_flush_buffers(videoState->audio_ctx);
 
       continue;
