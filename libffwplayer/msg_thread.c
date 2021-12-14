@@ -158,7 +158,7 @@ bool post_msg(  msg_thread_h src_handle,
   return true;
 }
 
-bool get_event(msg_thread_h handle, msg_t * msg_ptr)
+bool wait_msg(msg_thread_h handle, msg_t * msg_ptr)
 {
 
   RETURN_IF_BAD_HANDLE(handle,false);
@@ -175,7 +175,6 @@ bool get_event(msg_thread_h handle, msg_t * msg_ptr)
       LOG_E("get_event: error %d", ret);
       continue;
     }
-
   }
 
   if ( ! queue_get(&handle->queue, msg_ptr)) {
@@ -244,6 +243,29 @@ pthread_t ffw_create_thread(const char * name,
 
   pthread_setname_np(id, name);
   return id;
+}
+
+msg_thread_h ffw_create_msg_thread( const char * name,
+                                    int stackSize,
+                                    int priority,
+                                    void * ( *thread_entry)(void *),
+                                    void * arg,
+                                    bool detached,
+                                    int msg_queue_size)
+{
+  msg_thread_h msg_th = NULL;
+  pthread_t id = ffw_create_thread( name,
+                                    stackSize,
+                                    priority,
+                                    thread_entry,
+                                    arg,
+                                    detached);
+  if (id == -1) {
+    return NULL;
+  }
+  
+  return reg_msg_thread(id, msg_queue_size);
+
 }
 
 
