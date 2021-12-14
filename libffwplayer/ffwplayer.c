@@ -39,12 +39,6 @@
 #include "msg_thread.h"
 #include "log.h"
 
-// #define LOG   printf
-// #define LOG_E printf
-
-// #define STACKSIZE__DEFAULT   PTHREAD_STACK_MIN                      /**< 16K set by <limits.h>  (Linux default is 8M) */
-// #define DEFAULT_SCHED_POLICY SCHED_RR
-
 /**
  * Prevents SDL from overriding main().
  */
@@ -395,67 +389,6 @@ static AudioResamplingState * getAudioResampling(uint64_t channel_layout);
 
 static void stream_seek(VideoState * videoState, int64_t pos, int rel);
 
-//extern int pthread_setname_np(pthread_t thread, const char * name);
-
-// static pthread_t ffw_create_thread(const char * name,
-//                                    int stackSize,
-//                                    int priority,
-//                                    void * ( *thread_entry)(void *),
-//                                    void * arg,
-//                                    bool detached)
-// {
-//   pthread_attr_t attr;
-//   struct sched_param sch_param;
-//   pthread_t id;
-//   int retval = -1;
-
-//   pthread_attr_init(&attr);
-//   // ------------ Set priority ---------
-//   if (pthread_attr_getschedparam(&attr, &sch_param)) {
-//     LOG_E("create_event_thread %s: fail to get schedule params", name);
-//     return retval;
-//   }
-//   sch_param.sched_priority = priority;
-//   if (pthread_attr_setschedpolicy(&attr, DEFAULT_SCHED_POLICY)) {
-//     LOG_E("create_event_thread %s: fail to set schedule policy", name);
-//     return retval;
-//   }
-//   if (pthread_attr_setschedparam(&attr, &sch_param)) {
-//     LOG_E("create_event_thread %s: fail to set schedule params", name);
-//     return retval;
-//   }
-
-//   #ifdef ENABLE_KERNEL_RT
-//   if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {
-//     LOG_E("create_event_thread %s: fail to set scheduling inheritance", name);
-//     return retval;
-//   }
-//   #endif
-
-//   // if stackSize was provided set it
-//   if (stackSize) {
-//     if (pthread_attr_setstacksize(&attr, stackSize)) {
-//       LOG_E("create_event_thread %s: Fail to set stacksize\n", name);
-//       return retval;
-//     }
-//     // maybe otherwise set to STACKSIZE__DEFAULT ?
-//   }
-
-//   if (detached) {
-//     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-//   }
-
-//   int res = pthread_create((pthread_t *)&id, &attr, thread_entry, arg);
-
-//   if (res) {
-//     LOG_E("create_event_thread %s error\n", name);
-//     return retval;
-//   }
-
-//   pthread_setname_np(id, name);
-//   return id;
-// }
-
 /**
  * Entry point.
  *
@@ -683,8 +616,8 @@ int main(int argc, char * argv[])
 static void printHelpMenu()
 {
   LOG("Invalid arguments.\n\n");
-  LOG("Usage: ./tutorial07 <filename> <max-frames-to-decode>\n\n");
-  LOG("e.g: ./tutorial07 /home/rambodrahmani/Videos/video.mp4 200\n");
+  LOG("Usage: ./ffwplayer filename <max-frames-to-decode>\n\n");
+  LOG("e.g: ./ffwplayer $HOME/Videos/video.mp4 200\n");
 }
 
 /**

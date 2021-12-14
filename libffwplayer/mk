@@ -12,5 +12,4 @@ fi
 gcc -c msg_thread.c -o msg_thread.o
 gcc -c log.c -o log.o
 gcc -c ffwplayer.c -o ffwplayer.o `sdl2-config --cflags --libs`
-#gcc -o ffwplayer ffwplayer.c -pthread -lavutil -lavformat -lavcodec -lswscale -lswresample -lz -lm  `sdl2-config --cflags --libs`
 gcc -o ffwplayer log.o msg_thread.o ffwplayer.o -pthread -lavutil -lavformat -lavcodec -lswscale -lswresample -lz -lm  `sdl2-config --cflags --libs`

@@ -18,6 +18,7 @@ typedef struct msg_thread_st * msg_thread_h;  /**< opaque definition for the eve
 
 typedef struct msg_st {
   int           msg_id;
+  msg_thread_h  sender;
   int           v_int;
   const char *  v_char;
   void *        v_ptr_1;
