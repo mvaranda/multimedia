@@ -36,7 +36,7 @@
 #define _GNU_SOURCE
 #include <pthread.h>
 
-#include "msg_thread.h"
+#include "ffwplayer.h"
 #include "log.h"
 
 /**
@@ -400,6 +400,58 @@ static void stream_seek(VideoState * videoState, int64_t pos, int rel);
 // argv[1] has the URL
 // argv[2] has number of frames
 
+#define FFWPLAYER_AS_A_LIBRARY
+#define TEST_FFWPLAYER_LIBRARY
+
+#ifdef FFWPLAYER_AS_A_LIBRARY
+
+
+#ifdef TEST_FFWPLAYER_LIBRARY
+ffwplayer_t * ffw_create_player(const char * url, msg_thread_h parent_msg_th, void * client_data)
+{
+  ffwplayer_t * ffw;
+
+  if ( ! (ffw = (ffwplayer_t *) calloc(1, sizeof(ffwplayer_t)))) {
+    LOG_E("No memo for ffwplayer_t object");
+    return NULL;
+  }
+
+  ffw->url = url;
+  ffw->client_data = client_data;
+
+  return ffw;
+}
+
+
+int main(int argc, char * argv[])
+{
+  ffwplayer_t * ffw_h;
+  msg_thread_h main_msg_th;
+
+  if (argc < 2) {
+    LOG_E("missing url argument.");
+    return -1;
+  }
+
+  // create a message queue for this main thread
+  if ( ! (main_msg_th = reg_msg_thread(pthread_self(), 6)) ) {
+    LOG_E("Fail to create msg system for main App thread");
+    return -1;
+  }
+
+  if ( ! (ffw_h = ffw_create_player(argv[1], main_msg_th, 0))) {
+    LOG_E("No memo for ffwplayer_t object");
+    return -1;
+  }
+
+
+
+  return 0;
+
+}
+#endif // TEST_FFWPLAYER_LIBRARY
+
+#else
 int main(int argc, char * argv[])
 {
   // if the given number of command line arguments is wrong
@@ -609,6 +661,7 @@ int main(int argc, char * argv[])
 
   return 0;
 }
+#endif //  FFWPLAYER_AS_A_LIBRARY
 
 /**
  * Print help menu containing usage information.
