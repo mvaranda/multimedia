@@ -61,6 +61,7 @@ extern int pthread_getname_np(pthread_t thread, const char **name);
 static bool queue_put( queue_t * q, msg_t * msg)
 {
   if (q->num_msgs >= q->max_num_msgs) {
+    LOG("q->num_msgs = %d,    q->max_num_msgs = %d", q->num_msgs, q->max_num_msgs);
     return false;
   }
   q->msgs[q->msg_idx_in++] = *msg;
@@ -115,6 +116,7 @@ msg_thread_h reg_msg_thread(pthread_t id, int max_num_msgs)
   }
 
   msg_ht->tid = id;
+  msg_ht->queue.max_num_msgs = max_num_msgs;
   pthread_getname_np(id, &msg_ht->name);
 
   return msg_ht;
@@ -148,7 +150,7 @@ bool post_msg(  msg_thread_h src_handle,
 
 
   LOCK(dst_handle);
-  if ( !queue_put(&dst_handle->queue, msg) ) {
+  if ( (queue_put(&dst_handle->queue, msg)) == false) {
     UNLOCK(dst_handle);
     LOG_E("post_event: queue is full \"%s\"", dst_handle->name);
     return false;

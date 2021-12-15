@@ -407,8 +407,14 @@ static void stream_seek(VideoState * videoState, int64_t pos, int rel);
 
 
 #ifdef TEST_FFWPLAYER_LIBRARY
+#define GREETINGS "ffwplayer demo - ver 0.0.1\n\n"
+#define PROMPT "$ "
+
 void * ffw_thread(void * arg)
 {
+  bool ret_bool;
+  msg_t msg;
+
   ffwplayer_t * ffw = (ffwplayer_t *) arg;
 
   // the global VideoState reference will be set in format_demux_thread() to this pointer
@@ -416,6 +422,7 @@ void * ffw_thread(void * arg)
 
   // allocate memory for the VideoState and zero it out
   videoState = av_mallocz(sizeof(VideoState));
+  ffw->private_data = videoState;
 
   videoState->video_timer_tid = -1;
   // set global VideoState reference
@@ -459,7 +466,34 @@ void * ffw_thread(void * arg)
   av_init_packet(&videoState->flush_pkt);
   videoState->flush_pkt.data = "FLUSH";
 
-  sleep(10);
+  while(1) {
+    ret_bool = wait_msg(ffw->msg_th, &msg);
+    if ( ret_bool == false) {
+      LOG_E("wait_msg error");
+      // TODO: free resources
+      return NULL;
+    }
+    LOG("wait_msg returned id: %d", msg.msg_id);
+    
+    switch(msg.msg_id) {
+      case MSG_ID__EOS:
+        LOG("setting quit flag");
+        videoState->quit = 1;
+        break;
+
+      case MSG_ID__SEEK_RELATIVE: {
+        LOG("*************** seeking... %s **************", msg.v_int);
+        int64_t pos = get_master_clock((VideoState *) ffw->private_data);
+        pos += msg.v_int;
+        stream_seek((VideoState *) ffw->private_data, (int64_t)(pos * AV_TIME_BASE), msg.v_int);
+        }
+        break;
+
+      default:
+        LOG_W("unhandled message ID= %d", msg.msg_id);
+        break;
+    }
+  }
 
 }
 
@@ -500,7 +534,6 @@ int main(int argc, char * argv[])
   ffwplayer_t * ffw_h;
   msg_thread_h main_msg_th;
   msg_t msg;
-  bool ret_bool;
 
   if (argc < 2) {
     LOG_E("missing url argument.");
@@ -528,26 +561,82 @@ int main(int argc, char * argv[])
     return -1;
   }
 
-  while(1) {
-    ret_bool = wait_msg(main_msg_th, &msg);
-    if ( ret_bool == false) {
-      LOG_E("wait_msg error");
-      // TODO: free resources
-      return -1;
+  char c, line[32];
+  int line_idx = 0;
+  bool user_quit = false;
+  memset(line, 0, sizeof(line));
+
+  printf(GREETINGS);
+  printf(PROMPT);
+  fflush(stdout);
+
+  while( ! user_quit) {
+    scanf("%c", &c);
+    if (c != '\n') {
+      if (line_idx >= sizeof(line) - 1) {
+        line_idx = 0;
+        memset(line, 0, sizeof(line));
+      }
+      line[line_idx++] = c;
+      continue;
     }
 
-    switch(msg.msg_id) {
-      case MSG_ID__EOS:
+    switch(line[0]) {
+      case 'q':
+      case 'Q':
+        printf("Exiting...\n");
+        // msg.msg_id = MSG_ID__EOS;
+        // post_msg(main_msg_th, ffw_h->msg_th, &msg);
+        user_quit = true;
+        ffw_destroy(ffw_h);
         break;
+
+      case 's':
+      {
+        char * pEnd;
+
+        int v = strtol(&line[2], &pEnd, 10);
+
+        printf("Seek %d...\n", v);
+        // int64_t pos = get_master_clock((VideoState *) ffw_h->private_data);
+        // pos += v;
+        // stream_seek((VideoState *) ffw_h->private_data, (int64_t)(pos * AV_TIME_BASE), v);
+        ffw_seek_relative(ffw_h, v);
+        printf(PROMPT);
+        fflush(stdout);
+        break;
+      }
       default:
-        LOG_W("unhandled message ID= %d", msg.msg_id);
+        printf("invalid option\n\n" PROMPT);
         break;
     }
-  }
+    line_idx = 0;
+    memset(line, 0, sizeof(line));
+  } 
 
   return 0;
 
 }
+bool ffw_seek_relative(ffwplayer_t * ffw_t, int val)
+{
+  msg_t msg;
+  msg.msg_id = MSG_ID__SEEK_RELATIVE;
+  msg.v_int = val;
+  if ( ! post_msg(NULL, ffw_t->msg_th, &msg)) {
+    LOG_E("ffw_seek_relative: post error");
+    return false;
+  }
+  return true;
+}
+
+bool ffw_destroy(ffwplayer_t * ffw_h)
+{
+  msg_t msg;
+  msg.msg_id = MSG_ID__EOS;
+  post_msg(NULL, ffw_h->msg_th, &msg);
+  return true;
+}
+
 #endif // TEST_FFWPLAYER_LIBRARY
 
 #else
