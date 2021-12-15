@@ -1,0 +1,9 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/mvaranda/multimedia/libffwplayer",
+            "binaryPath": "/home/mvaranda/multimedia/libffwplayer/ffwplayer",
+            "binaryArgs": []
+        }
+    ]
+}

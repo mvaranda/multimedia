@@ -1,3 +1,6 @@
+
+MEDIA_TEST_FILE = ~/Videos/ironman.mp4
+
 EXEC = ffwplayer
 
 OBJS = ffwplayer.o \
@@ -20,7 +23,6 @@ all: ${EXEC}
 
 ffwplayer.o: ffwplayer.h log.h msg_thread.h
 	gcc ffwplayer.c -c -o ffwplayer.o ${CGLAGS}
-# gcc -o ffwplayer log.o msg_thread.o ffwplayer.o -pthread -lavutil -lavformat -lavcodec -lswscale -lswresample -lz -lm  `sdl2-config --cflags --libs`
 
 log.o: log.h
 	gcc log.c -c -o log.o ${CGLAGS}
@@ -34,3 +36,6 @@ ${EXEC}: ${OBJS}
 clean:
 	rm *.o
 	rm ${EXEC}
+
+test: ${EXEC}
+	./${EXEC} ${MEDIA_TEST_FILE}
