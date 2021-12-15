@@ -9,7 +9,7 @@ OBJS = ffwplayer.o \
 
 CFLAGS = -g `sdl2-config --cflags`
 
-LINK_FLAGS = -pthread \
+LINK_FLAGS = -g -pthread \
               -lavutil \
               -lavformat \
               -lavcodec \

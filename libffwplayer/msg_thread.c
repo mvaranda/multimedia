@@ -7,6 +7,22 @@
  * 
  ******************************************/
 
+/*
+   to debug core dump:
+    setup:
+      ulimit -c unlimited
+      sudo sysctl -w kernel.core_pattern=/tmp/core-dump
+    then:
+      run the program that gets Segment Fault
+      gdb -c /tmp/core-dump
+      symbol-file radiosw
+      sharedlibrary
+      thread apply all bt full
+
+   source: https://jvns.ca/blog/2018/04/28/debugging-a-segfault-on-linux/
+ */
+
+
 #include <stdio.h>
 #include <errno.h>
 #include "msg_thread.h"
@@ -68,20 +84,21 @@ static bool queue_put( queue_t * q, msg_t * msg)
   if (q->msg_idx_in >= q->max_num_msgs) {
     q->msg_idx_in = 0;
   }
-  q->max_num_msgs++;
+  q->num_msgs++;
   return true;
 }
 
 static bool queue_get( queue_t * q, msg_t * msg)
 {
   if (q->num_msgs == 0) {
+    LOG("queue empty");
     return false;
   }
   *msg = q->msgs[q->msg_idx_out++];
   if (q->msg_idx_out >= q->max_num_msgs) {
     q->msg_idx_out = 0;
   }
-  q->max_num_msgs--;
+  q->num_msgs--;
   return true;
 }
 
@@ -173,17 +190,19 @@ bool wait_msg(msg_thread_h handle, msg_t * msg_ptr)
       LOG_E("get_event: unexpected timeout");
       continue;
     }
+
     if (ret) {
       LOG_E("get_event: error %d", ret);
       continue;
     }
+
   }
 
   if ( ! queue_get(&handle->queue, msg_ptr)) {
+    LOG_E("wait_msg: queue_get error");
     UNLOCK(handle);
     return false;
   }
-
   UNLOCK(handle);
   return true;
 }

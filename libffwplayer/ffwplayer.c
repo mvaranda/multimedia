@@ -473,8 +473,7 @@ void * ffw_thread(void * arg)
       // TODO: free resources
       return NULL;
     }
-    LOG("wait_msg returned id: %d", msg.msg_id);
-    
+
     switch(msg.msg_id) {
       case MSG_ID__EOS:
         LOG("setting quit flag");
@@ -482,7 +481,7 @@ void * ffw_thread(void * arg)
         break;
 
       case MSG_ID__SEEK_RELATIVE: {
-        LOG("*************** seeking... %s **************", msg.v_int);
+        // LOG("*************** seeking... %d **************", msg.v_int);
         int64_t pos = get_master_clock((VideoState *) ffw->private_data);
         pos += msg.v_int;
         stream_seek((VideoState *) ffw->private_data, (int64_t)(pos * AV_TIME_BASE), msg.v_int);
@@ -534,6 +533,8 @@ int main(int argc, char * argv[])
   ffwplayer_t * ffw_h;
   msg_thread_h main_msg_th;
   msg_t msg;
+
+  log_init();
 
   if (argc < 2) {
     LOG_E("missing url argument.");
@@ -622,6 +623,7 @@ bool ffw_seek_relative(ffwplayer_t * ffw_t, int val)
   msg_t msg;
   msg.msg_id = MSG_ID__SEEK_RELATIVE;
   msg.v_int = val;
+
   if ( ! post_msg(NULL, ffw_t->msg_th, &msg)) {
     LOG_E("ffw_seek_relative: post error");
     return false;
