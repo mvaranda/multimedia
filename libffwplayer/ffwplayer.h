@@ -21,7 +21,7 @@
  */
 
 typedef struct ffwplayer_st {
-  const char * url;
+  const char *  url;
   msg_thread_h  msg_th;
   msg_thread_h  parent_msg_th;
   void *        client_data;

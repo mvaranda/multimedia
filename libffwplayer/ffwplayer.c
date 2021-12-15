@@ -407,6 +407,62 @@ static void stream_seek(VideoState * videoState, int64_t pos, int rel);
 
 
 #ifdef TEST_FFWPLAYER_LIBRARY
+void * ffw_thread(void * arg)
+{
+  ffwplayer_t * ffw = (ffwplayer_t *) arg;
+
+  // the global VideoState reference will be set in format_demux_thread() to this pointer
+  VideoState * videoState = NULL;
+
+  // allocate memory for the VideoState and zero it out
+  videoState = av_mallocz(sizeof(VideoState));
+
+  videoState->video_timer_tid = -1;
+  // set global VideoState reference
+  global_video_state = videoState;
+
+  // copy the file name input by the user to the VideoState structure
+  av_strlcpy(videoState->filename, ffw->url, sizeof(videoState->filename));
+
+  videoState->maxFramesToDecode = 0; //strtol(ffw->url, &pEnd, 10);
+
+
+  // initialize locks for the display buffer (pictq)
+  pthread_mutex_init(&videoState->pictq_mutex, NULL);
+  pthread_cond_init(&videoState->pictq_cond, NULL);
+
+  // launch our threads by pushing an SDL_event of type FF_REFRESH_EVENT
+  schedule_refresh(videoState, 100);
+
+  videoState->av_sync_type = DEFAULT_AV_SYNC_TYPE;
+
+  // start the decoding thread to read data from the AVFormatContext
+  // videoState->format_demux_tid = SDL_CreateThread(format_demux_thread, "Decoding Thread", videoState);
+  videoState->format_demux_tid = ffw_create_thread(
+    "format_demux_thread",                                  // name
+    0,                                                      // stack size
+    20,                                                     // int priority,
+    format_demux_thread,                                    // void * ( *thread_entry)(void *),
+    videoState,
+    true);                                                  // detached
+
+  // check the decode thread was correctly started
+  if (videoState->format_demux_tid == -1) {
+    LOG_E("Could not start decoding thread.\n");
+
+    // free allocated memory before exiting
+    av_free(videoState);
+
+    return NULL;
+  }
+
+  av_init_packet(&videoState->flush_pkt);
+  videoState->flush_pkt.data = "FLUSH";
+
+  sleep(10);
+
+}
+
 ffwplayer_t * ffw_create_player(const char * url, msg_thread_h parent_msg_th, void * client_data)
 {
   ffwplayer_t * ffw;
@@ -417,7 +473,23 @@ ffwplayer_t * ffw_create_player(const char * url, msg_thread_h parent_msg_th, vo
   }
 
   ffw->url = url;
+  ffw->parent_msg_th = parent_msg_th;
   ffw->client_data = client_data;
+
+  ffw->msg_th = ffw_create_msg_thread(
+    "ffw_thread",
+    0,
+    20,                             //   int priority,
+    ffw_thread,                     // void * ( *thread_entry)(void *),
+    ffw,                            // void * arg,
+    true,                           // bool detached,
+    6 );                            // int msg_queue_size);
+
+
+    if ( ! ffw->msg_th) {
+     LOG_E("fail to create ffw thread");
+     return NULL;  
+    }
 
   return ffw;
 }
@@ -427,9 +499,21 @@ int main(int argc, char * argv[])
 {
   ffwplayer_t * ffw_h;
   msg_thread_h main_msg_th;
+  msg_t msg;
+  bool ret_bool;
 
   if (argc < 2) {
     LOG_E("missing url argument.");
+    return -1;
+  }
+
+  /**
+   * Initialize SDL.
+   * New API: this implementation does not use deprecated SDL functionalities.
+   */
+  int ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+  if (ret != 0) {
+    LOG("Could not initialize SDL - %s\n.", SDL_GetError());
     return -1;
   }
 
@@ -444,7 +528,22 @@ int main(int argc, char * argv[])
     return -1;
   }
 
+  while(1) {
+    ret_bool = wait_msg(main_msg_th, &msg);
+    if ( ret_bool == false) {
+      LOG_E("wait_msg error");
+      // TODO: free resources
+      return -1;
+    }
 
+    switch(msg.msg_id) {
+      case MSG_ID__EOS:
+        break;
+      default:
+        LOG_W("unhandled message ID= %d", msg.msg_id);
+        break;
+    }
+  }
 
   return 0;
 

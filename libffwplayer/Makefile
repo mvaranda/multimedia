@@ -21,13 +21,13 @@ LINK_FLAGS = -pthread \
 
 all: ${EXEC}
 
-ffwplayer.o: ffwplayer.h log.h msg_thread.h
+ffwplayer.o: ffwplayer.c ffwplayer.h log.h msg_thread.h
 	gcc ffwplayer.c -c -o ffwplayer.o ${CGLAGS}
 
-log.o: log.h
+log.o: log.c log.h
 	gcc log.c -c -o log.o ${CGLAGS}
 
-msg_thread.o: ffwplayer.h log.h
+msg_thread.o: msg_thread.c ffwplayer.h log.h
 	gcc msg_thread.c -c -o msg_thread.o ${CGLAGS}
 
 ${EXEC}: ${OBJS}

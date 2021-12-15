@@ -26,6 +26,16 @@ typedef struct msg_st {
   void *        v_ptr_3;
 } msg_t;
 
+enum {
+  MSG_ID__EOS,
+  MSG_ID__PAUSE,
+  MSG_ID__RESUME,
+  MSG_ID__STOP,
+  MSG_ID__POS_REPORT,
+  MSG_ID__POS_SET,
+  MSG_ID__TIMER
+};
+
 msg_thread_h reg_msg_thread(pthread_t id, int msg_queue_size);
 bool dereg_msg_thread(msg_thread_h evt_h);
 
