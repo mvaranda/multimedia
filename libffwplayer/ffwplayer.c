@@ -51,8 +51,8 @@
  */
 #define _DEBUG_                       0
 
-#define DEFAULT_WIDTH 640
-#define DEFAULT_HEIGTH 180
+#define DEFAULT_WIDTH 800
+#define DEFAULT_HEIGTH 500
 /**
  * SDL audio buffer size in samples.
  */
