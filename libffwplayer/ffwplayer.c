@@ -51,6 +51,8 @@
  */
 #define _DEBUG_                       0
 
+#define DEFAULT_WIDTH 640
+#define DEFAULT_HEIGTH 180
 /**
  * SDL audio buffer size in samples.
  */
@@ -1216,9 +1218,9 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         "FFmpeg SDL Video Player",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        320, //codecCtx->width,
-        70, //codecCtx->height,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI
+        DEFAULT_WIDTH, //codecCtx->width,
+        DEFAULT_HEIGTH, //codecCtx->height,
+        SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE
         );
 
       // check window was correctly created
@@ -2050,6 +2052,11 @@ static void video_display(VideoState * videoState)
     // get the size of a window's client area
     int screen_width;
     int screen_height;
+
+    // MV: work around to get window resize updating its internal width and heigth
+    SDL_Event ev;
+    while(SDL_PollEvent(&ev)) { /* summy */ }
+
     SDL_GetWindowSize(videoState->screen, &screen_width, &screen_height);
 
     // global SDL_Surface height
@@ -2100,17 +2107,24 @@ static void video_display(VideoState * videoState)
       rect.h = h;
 
       SDL_Rect rect_picture;
-      rect_picture.x = 0; 
-      rect_picture.y = 0;
+      rect_picture.x = 0; //x; 
+      rect_picture.y = 0; //y;
       rect_picture.w = videoState->video_ctx->width;
       rect_picture.h = videoState->video_ctx->height;
 
 
       SDL_Rect rect_win;
-      rect_win.x = x;
-      rect_win.y = y;
       rect_win.w = w;
       rect_win.h = h;
+      rect_win.x = 0;
+      if (screen_width > w) {
+        rect_win.x = (screen_width - w) / 2;
+      }
+      rect_win.y = 0;
+      if (screen_height > h) {
+        rect_win.y = (screen_height - h ) / 2;
+      }
+
 
       // lock screen mutex
       pthread_mutex_lock(&videoState->screen_mutex);
