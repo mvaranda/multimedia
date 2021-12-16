@@ -1216,8 +1216,8 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         "FFmpeg SDL Video Player",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        codecCtx->width,
-        codecCtx->height,
+        320, //codecCtx->width,
+        70, //codecCtx->height,
         SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI
         );
 
@@ -2094,16 +2094,23 @@ static void video_display(VideoState * videoState)
 
       // set blit area x and y coordinates, width and height
       SDL_Rect rect;
-      rect.x = x;
+      rect.x = x; 
       rect.y = y;
       rect.w = w;
       rect.h = h;
 
-      SDL_Rect rect2;
-      rect2.x = x;
-      rect2.y = y;
-      rect2.w = w/4;
-      rect2.h = h/4;
+      SDL_Rect rect_picture;
+      rect_picture.x = 0; 
+      rect_picture.y = 0;
+      rect_picture.w = videoState->video_ctx->width;
+      rect_picture.h = videoState->video_ctx->height;
+
+
+      SDL_Rect rect_win;
+      rect_win.x = x;
+      rect_win.y = y;
+      rect_win.w = w;
+      rect_win.h = h;
 
       // lock screen mutex
       pthread_mutex_lock(&videoState->screen_mutex);
@@ -2111,7 +2118,7 @@ static void video_display(VideoState * videoState)
       // update the texture with the new pixel data
       SDL_UpdateYUVTexture(
         videoState->texture,
-        &rect,
+        &rect_picture, // &rect,
         videoPicture->frame->data[0],
         videoPicture->frame->linesize[0],
         videoPicture->frame->data[1],
@@ -2124,7 +2131,7 @@ static void video_display(VideoState * videoState)
       SDL_RenderClear(videoState->renderer);
 
       // copy a portion of the texture to the current rendering target
-      SDL_RenderCopy(videoState->renderer, videoState->texture, NULL, &rect2);
+      SDL_RenderCopy(videoState->renderer, videoState->texture, NULL, &rect_win);
 
       // update the screen with any rendering performed since the previous call
       SDL_RenderPresent(videoState->renderer);
