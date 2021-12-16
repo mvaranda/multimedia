@@ -2099,6 +2099,12 @@ static void video_display(VideoState * videoState)
       rect.w = w;
       rect.h = h;
 
+      SDL_Rect rect2;
+      rect2.x = x;
+      rect2.y = y;
+      rect2.w = w/4;
+      rect2.h = h/4;
+
       // lock screen mutex
       pthread_mutex_lock(&videoState->screen_mutex);
 
@@ -2118,7 +2124,7 @@ static void video_display(VideoState * videoState)
       SDL_RenderClear(videoState->renderer);
 
       // copy a portion of the texture to the current rendering target
-      SDL_RenderCopy(videoState->renderer, videoState->texture, NULL, NULL);
+      SDL_RenderCopy(videoState->renderer, videoState->texture, NULL, &rect2);
 
       // update the screen with any rendering performed since the previous call
       SDL_RenderPresent(videoState->renderer);
