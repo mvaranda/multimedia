@@ -10,8 +10,8 @@ CONFIG += c++11
 
 SOURCES += \
     ../libffwplayer/ffwplayer.c \
-    ../libffwplayer/log.c \
     ../libffwplayer/msg_thread.c \
+    log.cpp \
     main.cpp \
     mainwindow.cpp
 
@@ -33,8 +33,9 @@ LIBS += -lpthread \
     -lz \
     -lm -lSDL2
 
+INCLUDEPATH += ../libffwplayer
 INCLUDEPATH += /usr/include/SDL2
-DEFINES += _REENTRANT
+DEFINES += _REENTRANT QT_PLATF
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

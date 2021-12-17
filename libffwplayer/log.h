@@ -10,6 +10,29 @@
 
 #pragma once
 
+#ifdef QT_PLATF
+
+#include <stdio.h>
+
+#define LOG         qDebugC
+#define LOG_E       qDebugC
+#define LOG_I       qDebugC
+#define LOG_W       qDebugC
+
+
+#ifdef __cplusplus
+  extern "C" {
+#endif
+
+
+  void qDebugC(const char * format,...);
+
+
+#ifdef __cplusplus
+}
+#endif
+#else
+
 /**
  * @file
  * @brief logger
@@ -50,3 +73,5 @@ void log_line(char * what, int line, char * fmt, ...);
 #ifdef __cplusplus
   }
 #endif
+
+#endif //

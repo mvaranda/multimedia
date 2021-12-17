@@ -1,10 +1,43 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_thread.h>
+
+
+
+bool MainWindow::initPlayerResources()
+{
+  //ffwplayer_t * ffw_h;
+  msg_thread_h main_msg_th;
+  //msg_t msg;
+
+  //log_init();
+
+
+  int ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+  if (ret != 0) {
+    LOG("Could not initialize SDL - %s\n.", SDL_GetError());
+    return false;
+  }
+
+  // create a message queue for this main thread
+  if ( ! (main_msg_th = reg_msg_thread(pthread_self(), 6)) ) {
+    LOG_E("Fail to create msg system for main App thread");
+    return false;
+  }
+
+//  if ( ! (ffw_h = ffw_create_player(argv[1], main_msg_th, 0))) {
+//    LOG_E("No memo for ffwplayer_t object");
+//    return -1;
+//  }
+  return true;
+}
 
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent)
   , ui(new Ui::MainWindow)
 {
+  initPlayerResources();
   ui->setupUi(this);
   videoCells[0].video_area = ui->lb_video_area_0;
   videoCells[0].t_url = ui->t_url_0;
@@ -26,18 +59,30 @@ MainWindow::MainWindow(QWidget *parent)
   videoCells[4].t_url = ui->t_url_11;
   videoCells[4].bt_file = ui->bt_select_file_11;
 
+
   videoCells[5].video_area = ui->lb_video_area_12;
   videoCells[5].t_url = ui->t_url_12;
   videoCells[5].bt_file = ui->bt_select_file_12;
 
   QImage image(":/images/3X_screen.png");
   for (int i=0; i < NUM_VIDEO_CELLS; i++) {
-    videoCells[i].t_url->setPlainText("~/Videos/ironman.mp4");
+    videoCells[i].t_url->setPlainText("/home/mvaranda/Videos/ironman.mp4"); //"~/Videos/ironman.mp4");
     int w = videoCells[i].video_area->width();
     int h = videoCells[i].video_area->height();
     videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
-  }
 
+  }
+  QString s = videoCells[0].t_url->toPlainText();
+  const std::string& stdS = s.toStdString();
+  char buf[MAX_URL_LEN];
+  memset(buf, 0, sizeof(buf));
+  memcpy(buf, stdS.c_str(), stdS.length());
+
+#if 1
+  if ( ! (videoCells[0].ffw_h = ffw_create_player(buf, main_msg_th, 0))) {
+    LOG_E("No memo for ffwplayer_t object");
+  }
+#endif
   // pre populate
 //  videoCells[0].t_url->setPlainText("~/Videos/ironman.mp4");
 //  QImage image(":/images/3X_screen.png");

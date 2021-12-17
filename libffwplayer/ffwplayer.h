@@ -20,6 +20,8 @@
  *
  */
 
+#define MAX_URL_LEN 512
+
 enum {
   MSG_ID__EOS,
   MSG_ID__PAUSE,
@@ -32,7 +34,7 @@ enum {
 };
 
 typedef struct ffwplayer_st {
-  const char *  url;
+  char          url[MAX_URL_LEN + 1];
   msg_thread_h  msg_th;
   msg_thread_h  parent_msg_th;
   void *        private_data;
@@ -49,7 +51,7 @@ typedef struct ffwplayer_st {
  */
 void ffwplayer_init(void);
 
-ffwplayer_t * ffw_create_player(const char * url, msg_thread_h parent_msg_th, void * client_data);
+ffwplayer_t * ffw_create_player(char * url, msg_thread_h parent_msg_th, void * client_data);
 bool ffw_seek_relative(ffwplayer_t * ffw_t, int val);
 bool ffw_destroy(ffwplayer_t * ffw_t);
 

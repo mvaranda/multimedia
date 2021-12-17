@@ -408,7 +408,7 @@ static void stream_seek(VideoState * videoState, int64_t pos, int rel);
 #ifdef FFWPLAYER_AS_A_LIBRARY
 
 
-#ifdef TEST_FFWPLAYER_LIBRARY
+
 #define GREETINGS "ffwplayer demo - ver 0.0.1\n\n"
 #define PROMPT "$ "
 
@@ -498,7 +498,7 @@ void * ffw_thread(void * arg)
 
 }
 
-ffwplayer_t * ffw_create_player(const char * url, msg_thread_h parent_msg_th, void * client_data)
+ffwplayer_t * ffw_create_player(char * _url, msg_thread_h parent_msg_th, void * client_data)
 {
   ffwplayer_t * ffw;
 
@@ -507,7 +507,9 @@ ffwplayer_t * ffw_create_player(const char * url, msg_thread_h parent_msg_th, vo
     return NULL;
   }
 
-  ffw->url = url;
+  //ffw->url = _url;
+  //snprintf(ffw->url, MAX_URL_LEN, "%s", _url);
+  strcpy(ffw->url, _url);
   ffw->parent_msg_th = parent_msg_th;
   ffw->client_data = client_data;
 
@@ -529,7 +531,28 @@ ffwplayer_t * ffw_create_player(const char * url, msg_thread_h parent_msg_th, vo
   return ffw;
 }
 
+bool ffw_seek_relative(ffwplayer_t * ffw_t, int val)
+{
+  msg_t msg;
+  msg.msg_id = MSG_ID__SEEK_RELATIVE;
+  msg.v_int = val;
 
+  if ( ! post_msg(NULL, ffw_t->msg_th, &msg)) {
+    LOG_E("ffw_seek_relative: post error");
+    return false;
+  }
+  return true;
+}
+
+bool ffw_destroy(ffwplayer_t * ffw_h)
+{
+  msg_t msg;
+  msg.msg_id = MSG_ID__EOS;
+  post_msg(NULL, ffw_h->msg_th, &msg);
+  return true;
+}
+
+#ifdef TEST_FFWPLAYER_LIBRARY
 int main(int argc, char * argv[])
 {
   ffwplayer_t * ffw_h;
@@ -620,26 +643,7 @@ int main(int argc, char * argv[])
   return 0;
 
 }
-bool ffw_seek_relative(ffwplayer_t * ffw_t, int val)
-{
-  msg_t msg;
-  msg.msg_id = MSG_ID__SEEK_RELATIVE;
-  msg.v_int = val;
 
-  if ( ! post_msg(NULL, ffw_t->msg_th, &msg)) {
-    LOG_E("ffw_seek_relative: post error");
-    return false;
-  }
-  return true;
-}
-
-bool ffw_destroy(ffwplayer_t * ffw_h)
-{
-  msg_t msg;
-  msg.msg_id = MSG_ID__EOS;
-  post_msg(NULL, ffw_h->msg_th, &msg);
-  return true;
-}
 
 #endif // TEST_FFWPLAYER_LIBRARY
 

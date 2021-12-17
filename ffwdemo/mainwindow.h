@@ -6,6 +6,10 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 
+#include "log.h"
+#include "msg_thread.h"
+#include "ffwplayer.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -22,6 +26,7 @@ public:
         QLabel * video_area;
         QPlainTextEdit * t_url;
         QPushButton * bt_file;
+        ffwplayer_t * ffw_h;
     };
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -33,5 +38,8 @@ private:
     QPushButton * bt_file = nullptr;
 
     VideoCell videoCells[NUM_VIDEO_CELLS];
+    msg_thread_h main_msg_th;
+
+    bool initPlayerResources();
 };
 #endif // MAINWINDOW_H
