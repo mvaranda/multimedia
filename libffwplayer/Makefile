@@ -7,7 +7,7 @@ OBJS = ffwplayer.o \
        log.o \
        msg_thread.o
 
-CFLAGS = -g `sdl2-config --cflags`
+CFLAGS = -g -DTEST_FFWPLAYER_LIBRARY `sdl2-config --cflags`
 
 LINK_FLAGS = -g -pthread \
               -lavutil \

@@ -39,6 +39,9 @@
 #include "ffwplayer.h"
 #include "log.h"
 
+#define FFWPLAYER_AS_A_LIBRARY
+//#define TEST_FFWPLAYER_LIBRARY
+
 /**
  * Prevents SDL from overriding main().
  */
@@ -401,9 +404,6 @@ static void stream_seek(VideoState * videoState, int64_t pos, int rel);
  */
 // argv[1] has the URL
 // argv[2] has number of frames
-
-#define FFWPLAYER_AS_A_LIBRARY
-#define TEST_FFWPLAYER_LIBRARY
 
 #ifdef FFWPLAYER_AS_A_LIBRARY
 
@@ -2099,16 +2099,9 @@ static void video_display(VideoState * videoState)
           );
       }
 
-      // set blit area x and y coordinates, width and height
-      SDL_Rect rect;
-      rect.x = x; 
-      rect.y = y;
-      rect.w = w;
-      rect.h = h;
-
       SDL_Rect rect_picture;
-      rect_picture.x = 0; //x; 
-      rect_picture.y = 0; //y;
+      rect_picture.x = 0;
+      rect_picture.y = 0;
       rect_picture.w = videoState->video_ctx->width;
       rect_picture.h = videoState->video_ctx->height;
 

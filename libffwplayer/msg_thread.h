@@ -26,6 +26,10 @@ typedef struct msg_st {
   void *        v_ptr_3;
 } msg_t;
 
+#ifdef __cplusplus
+  extern "C" {
+#endif
+
 msg_thread_h reg_msg_thread(pthread_t id, int msg_queue_size);
 bool dereg_msg_thread(msg_thread_h evt_h);
 
@@ -49,3 +53,7 @@ msg_thread_h ffw_create_msg_thread( const char * name,
                                     void * arg,
                                     bool detached,
                                     int msg_queue_size);
+
+#ifdef __cplusplus
+  } //extern "C" {
+#endif
