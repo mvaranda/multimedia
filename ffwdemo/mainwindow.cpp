@@ -12,8 +12,11 @@ MainWindow::MainWindow(QWidget *parent)
 
   // pre populate
   videoCells[0].t_url->setPlainText("~/Videos/ironman.mp4");
-  QImage image("imgPath");
+  QImage image(":/images/3X_screen.png");
   videoCells[0].video_area->setPixmap(QPixmap::fromImage(image));
+  // resize: https://exceptionshub.com/qt-resizing-a-qlabel-containing-a-qpixmap-while-keeping-its-aspect-ratio.html
+  //         https://stackoverflow.com/questions/14107144/how-do-i-make-an-image-resize-to-scale-in-qt
+
 
 }
 

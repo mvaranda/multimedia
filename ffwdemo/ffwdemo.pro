@@ -43,3 +43,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 #unix: CONFIG += link_pkgconfig
 #unix: PKGCONFIG += pthread
+
+RESOURCES += \
+  resource.qrc
