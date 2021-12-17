@@ -40,9 +40,15 @@
 #include "log.h"
 
 #ifdef QT_PLATF
+#define USE_RGB32
+#endif
+
+#ifdef USE_RGB32
 #define AV_VIDEO_FORMAT AV_PIX_FMT_RGB32
+#define AV_PIXEL_FORMAT SDL_PIXELFORMAT_RGBA32
 #else
 #define AV_VIDEO_FORMAT AV_PIX_FMT_YUV420P
+#define AV_PIXEL_FORMAT SDL_PIXELFORMAT_YV12
 #endif
 
 #define FFWPLAYER_AS_A_LIBRARY
@@ -1252,7 +1258,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
       // create a texture for a rendering context
       videoState->texture = SDL_CreateTexture(
         videoState->renderer,
-        SDL_PIXELFORMAT_YV12,
+        AV_PIXEL_FORMAT,
         SDL_TEXTUREACCESS_STREAMING,
         videoState->video_ctx->width,
         videoState->video_ctx->height
@@ -2136,6 +2142,20 @@ static void video_display(VideoState * videoState)
       pthread_mutex_lock(&videoState->screen_mutex);
 
       // update the texture with the new pixel data
+#ifdef USE_RGB32
+      SDL_UpdateTexture(
+        videoState->texture,
+        &rect_picture, // &rect,
+        videoPicture->frame->data[0],
+        *videoPicture->frame->linesize); //rect_picture.w * 4);
+        // ->data[0],
+        // videoPicture->frame->linesize[0],
+        // videoPicture->frame->data[1],
+        // videoPicture->frame->linesize[1],
+        // videoPicture->frame->data[2],
+        // videoPicture->frame->linesize[2]
+        // );
+#else
       SDL_UpdateYUVTexture(
         videoState->texture,
         &rect_picture, // &rect,
@@ -2146,7 +2166,7 @@ static void video_display(VideoState * videoState)
         videoPicture->frame->data[2],
         videoPicture->frame->linesize[2]
         );
-
+#endif
       // clear the current rendering target with the drawing color
       SDL_RenderClear(videoState->renderer);
 

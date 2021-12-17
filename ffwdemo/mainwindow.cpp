@@ -66,10 +66,12 @@ MainWindow::MainWindow(QWidget *parent)
 
   QImage image(":/images/3X_screen.png");
   for (int i=0; i < NUM_VIDEO_CELLS; i++) {
-    videoCells[i].t_url->setPlainText("/home/mvaranda/Videos/ironman.mp4"); //"~/Videos/ironman.mp4");
+    videoCells[i].t_url->setPlainText("/home/mvaranda/Videos/ironman.mp4");
     int w = videoCells[i].video_area->width();
     int h = videoCells[i].video_area->height();
     videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
+    // resize: https://exceptionshub.com/qt-resizing-a-qlabel-containing-a-qpixmap-while-keeping-its-aspect-ratio.html
+    //         https://stackoverflow.com/questions/14107144/how-do-i-make-an-image-resize-to-scale-in-qt
 
   }
   QString s = videoCells[0].t_url->toPlainText();
@@ -83,15 +85,10 @@ MainWindow::MainWindow(QWidget *parent)
     LOG_E("No memo for ffwplayer_t object");
   }
 #endif
-  // pre populate
-//  videoCells[0].t_url->setPlainText("~/Videos/ironman.mp4");
-//  QImage image(":/images/3X_screen.png");
-//  int w = videoCells[0].video_area->width();
-//  int h = videoCells[0].video_area->height();
-//  videoCells[0].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
 
-  // resize: https://exceptionshub.com/qt-resizing-a-qlabel-containing-a-qpixmap-while-keeping-its-aspect-ratio.html
-  //         https://stackoverflow.com/questions/14107144/how-do-i-make-an-image-resize-to-scale-in-qt
+
+
+
 
 
 }
