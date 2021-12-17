@@ -23,8 +23,8 @@
          <widget class="QLabel" name="lb_video_area_0">
           <property name="minimumSize">
            <size>
-            <width>160</width>
-            <height>120</height>
+            <width>320</width>
+            <height>240</height>
            </size>
           </property>
           <property name="text">
