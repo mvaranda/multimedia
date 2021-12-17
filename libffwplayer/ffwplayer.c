@@ -39,6 +39,12 @@
 #include "ffwplayer.h"
 #include "log.h"
 
+#ifdef QT_PLATF
+#define AV_VIDEO_FORMAT AV_PIX_FMT_RGB32
+#else
+#define AV_VIDEO_FORMAT AV_PIX_FMT_YUV420P
+#endif
+
 #define FFWPLAYER_AS_A_LIBRARY
 //#define TEST_FFWPLAYER_LIBRARY
 
@@ -1210,7 +1216,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
                                            videoState->video_ctx->pix_fmt,
                                            videoState->video_ctx->width,
                                            videoState->video_ctx->height,
-                                           AV_PIX_FMT_YUV420P,
+                                           AV_VIDEO_FORMAT,
                                            SWS_BILINEAR,
                                            NULL,
                                            NULL,
@@ -1294,7 +1300,7 @@ static void alloc_picture(void * userdata)
   // get the size in bytes required to store an image with the given parameters
   int numBytes;
   numBytes = av_image_get_buffer_size(
-    AV_PIX_FMT_YUV420P,
+    AV_VIDEO_FORMAT,
     videoState->video_ctx->width,
     videoState->video_ctx->height,
     32
@@ -1316,7 +1322,7 @@ static void alloc_picture(void * userdata)
     videoPicture->frame->data,
     videoPicture->frame->linesize,
     buffer,
-    AV_PIX_FMT_YUV420P,
+    AV_VIDEO_FORMAT,
     videoState->video_ctx->width,
     videoState->video_ctx->height,
     32
@@ -2057,6 +2063,9 @@ static void video_display(VideoState * videoState)
     int screen_width;
     int screen_height;
 
+#ifdef QT_PLATF
+
+#else
     // MV: work around to get window resize updating its internal width and heigth
     SDL_Event ev;
     while(SDL_PollEvent(&ev)) { /* summy */ }
@@ -2158,6 +2167,7 @@ static void video_display(VideoState * videoState)
       // push the event
       SDL_PushEvent(&event);
     }
+#endif // SDL version
   }
 }
 
