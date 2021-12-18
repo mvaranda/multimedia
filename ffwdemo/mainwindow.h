@@ -23,10 +23,16 @@ class MainWindow : public QMainWindow
 public:
     class VideoCell{
     public:
-        QLabel * video_area;
-        QPlainTextEdit * t_url;
-        QPushButton * bt_file;
-        ffwplayer_t * ffw_h;
+      VideoCell() :
+      video_area(nullptr),
+        t_url(nullptr),
+        bt_file(nullptr),
+        ffw_h(nullptr){}
+
+        QLabel * video_area = nullptr;
+        QPlainTextEdit * t_url = nullptr;
+        QPushButton * bt_file = nullptr;
+        ffwplayer_t * ffw_h = nullptr;
     };
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -45,6 +51,8 @@ private:
     bool initPlayerResources();
 
 signals:
-    void imageChanged(QImage image);
+    void imageChanged(QImage image, ffwplayer_t * ffw);
+private slots:
+    void on_pushButton_clicked();
 };
 #endif // MAINWINDOW_H

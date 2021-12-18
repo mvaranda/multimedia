@@ -1125,6 +1125,7 @@ static void * format_demux_thread(void * arg)
  */
 static int stream_component_open(VideoState * videoState, int stream_index)
 {
+  static bool audio_already_open = false;
   // retrieve file I/O context
   AVFormatContext * pFormatCtx = videoState->pFormatCtx;
 
@@ -1168,12 +1169,16 @@ static int stream_component_open(VideoState * videoState, int stream_index)
 
     /* Deprecated, please refer to tutorial04-resampled.c for the new API */
     // open audio device
-    ret = SDL_OpenAudio(&wanted_specs, &specs);
+    if (audio_already_open == false) {
+      audio_already_open = true;
+      ret = SDL_OpenAudio(&wanted_specs, &specs);
+      //ret = SDL_OpenAudioDevice(NULL, 0, &wanted_specs, &specs, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
-    // check audio device was correctly opened
-    if (ret < 0) {
-      LOG("SDL_OpenAudio: %s.\n", SDL_GetError());
-      return -1;
+      // check audio device was correctly opened
+      if (ret < 0) {
+        LOG("SDL_OpenAudio: %s.\n", SDL_GetError());
+        return -1;
+      }
     }
   }
 
@@ -1775,7 +1780,7 @@ static void video_refresher(void * userdata)
   if (videoState->video_st) {
     // check the VideoPicture queue contains decoded frames
     if (videoState->pictq_size == 0) {
-      LOG_E("\n!!!videoState->pictq_size == 0!!!\n");
+      //LOG_E("\n!!!videoState->pictq_size == 0!!!\n");
 
       schedule_refresh(videoState, 1);
     } else {

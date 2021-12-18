@@ -14,12 +14,21 @@ MainWindow * mainApp;
 //};
 
 QString demo_videos_dir = "/home/mvaranda/Videos/";
+//QString demo_video_names[] =  {
+//  "rtsp://10.10.10.90/1",
+//  demo_videos_dir + "Agent 327 - Blender Studio-1.mkv",
+//  demo_videos_dir + "caminandes-2-gran-dillama.mp4",
+//  demo_videos_dir + "sintel-the-movie-720p.mp4",
+//  demo_videos_dir + "tears_of_steel_720p.mov",
+//  ""
+//};
+
 QString demo_video_names[] =  {
-  "rtsp://10.10.10.90/1",
-  demo_videos_dir + "Agent 327 - Blender Studio-1.mkv",
+  "",
+  "",
+  "",
   demo_videos_dir + "caminandes-2-gran-dillama.mp4",
-  demo_videos_dir + "sintel-the-movie-720p.mp4",
-  demo_videos_dir + "tears_of_steel_720p.mov",
+  demo_videos_dir + "agent_327.mp4",
   ""
 };
 
@@ -86,24 +95,27 @@ MainWindow::MainWindow(QWidget *parent)
 
   QImage image(":/images/3X_screen.png");
   for (int i=0; i < NUM_VIDEO_CELLS; i++) {
+    videoCells[i].ffw_h = NULL;
     videoCells[i].t_url->setPlainText(demo_video_names[i]);
     int w = videoCells[i].video_area->width();
     int h = videoCells[i].video_area->height();
     videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
   }
+
+
+  connect(this, &MainWindow::imageChanged, this, [&](QImage image, ffwplayer_t * ffw){
+    uint64_t i = (uint64_t) ffw->client_data;
+    int w = videoCells[i].video_area->width();
+    int h = videoCells[i].video_area->height();
+    videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
+  });
+
+#if 0
   QString s = videoCells[0].t_url->toPlainText();
   const std::string& stdS = s.toStdString();
   char buf[MAX_URL_LEN];
   memset(buf, 0, sizeof(buf));
   memcpy(buf, stdS.c_str(), stdS.length());
-
-  connect(this, &MainWindow::imageChanged, this, [&](QImage image){
-    int w = videoCells[0].video_area->width();
-    int h = videoCells[0].video_area->height();
-    videoCells[0].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
-  });
-
-#if 1
   if ( ! (videoCells[0].ffw_h = ffw_create_player(buf, main_msg_th, 0))) {
     LOG_E("No memo for ffwplayer_t object");
   }
@@ -121,7 +133,7 @@ void MainWindow::updatePicture(ffwplayer_t * ffw, VideoPicture * video_picture)
   QImage *image = new QImage(QSize(video_picture->width, video_picture->height), QImage::Format_RGB32);
   void * data_ptr = video_picture->frame->data[0];
   memcpy(image->bits(), data_ptr, static_cast<size_t>(image->sizeInBytes()));
-  emit imageChanged(*image);
+  emit imageChanged(*image, ffw);
   delete image;
 }
 
@@ -129,9 +141,36 @@ extern "C" {
 
 void update_picture_widget(ffwplayer_t * ffw, VideoPicture * video_picture)
 {
+  //uint64_t idx = (uint64_t) ffw->client_data;
   mainApp->updatePicture(ffw, video_picture);
 }
 
 }
 
+
+
+void MainWindow::on_pushButton_clicked()
+{
+  int i;
+  QString s;
+  char buf[MAX_URL_LEN];
+
+  for (i=0; i<NUM_VIDEO_CELLS; i++) {
+    if (videoCells[i].ffw_h != NULL) {
+      LOG("Skip videoCell %d as already playing", i);
+      continue;
+    }
+    s = videoCells[i].t_url->toPlainText();
+    const std::string& stdS = s.toStdString();
+    if (stdS.length() < 2) {
+      LOG("Skip videoCell %d as no URL given", i);
+      continue;
+    }
+    memset(buf, 0, sizeof(buf));
+    memcpy(buf, stdS.c_str(), stdS.length());
+    if ( ! (videoCells[i].ffw_h = ffw_create_player(buf, main_msg_th, (void *) i))) {
+      LOG_E("No memo for ffwplayer_t object");
+    }
+  }
+}
 
