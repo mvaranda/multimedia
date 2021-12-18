@@ -269,6 +269,11 @@ typedef struct VideoState {
   unsigned int video_timer_delay;
   ffwplayer_t * parent_ffw;
 
+  AVFrame * v_pFrame;
+  AVFrame * avFrame;
+  //uint8_t * audio_pkt_data;
+  //int audio_pkt_size;
+
 } VideoState;
 
   VideoState * global_video_state;
@@ -1129,7 +1134,7 @@ static void * format_demux_thread(void * arg)
  */
 static int stream_component_open(VideoState * videoState, int stream_index)
 {
-  static bool audio_already_open = false;
+  //static bool audio_already_open = false;
   // retrieve file I/O context
   AVFormatContext * pFormatCtx = videoState->pFormatCtx;
 
@@ -1174,7 +1179,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
 
     /* Deprecated, please refer to tutorial04-resampled.c for the new API */
     // open audio device
-    if (audio_already_open == false) {
+    //if (audio_already_open == false) {
       audio_already_open = true;
       ret = SDL_OpenAudio(&wanted_specs, &specs);
       //ret = SDL_OpenAudioDevice(NULL, 0, &wanted_specs, &specs, SDL_AUDIO_ALLOW_ANY_CHANGE);
@@ -1184,16 +1189,16 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         LOG("SDL_OpenAudio: %s.\n", SDL_GetError());
         return -1;
       }
-    }
+    //}
 #else // use ALSA 
 
-    videoState->audio_thread_tid = ffw_create_thread(
-      "audio_thread",                                         // name
-      0,                                                      // stack size
-      20,                                                     // int priority,
-      alsa_audio_thread,                                      // void * ( *thread_entry)(void *),
-      videoState,
-      true);                                                  // detached
+    // videoState->audio_thread_tid = ffw_create_thread(
+    //   "audio_thread",                                         // name
+    //   0,                                                      // stack size
+    //   20,                                                     // int priority,
+    //   alsa_audio_thread,                                      // void * ( *thread_entry)(void *),
+    //   videoState,
+    //   true);                                                  // detached
 
 #endif // #ifdef USE_SDL_AUDIO
   }
@@ -1227,6 +1232,15 @@ static int stream_component_open(VideoState * videoState, int stream_index)
       // start playing audio on the first audio device
 #ifdef USE_SDL_AUDIO
       SDL_PauseAudio(0);
+
+#else // ALSA
+    videoState->audio_thread_tid = ffw_create_thread(
+      "audio_thread",                                         // name
+      0,                                                      // stack size
+      20,                                                     // int priority,
+      alsa_audio_thread,                                      // void * ( *thread_entry)(void *),
+      videoState,
+      true);                                                  // detached
 #endif
     }
     break;
@@ -1513,9 +1527,8 @@ static void * video_thread(void * arg)
   int frameFinished = 0;
 
   // allocate a new AVFrame, used to decode video packets
-  static AVFrame * pFrame = NULL;
-  pFrame = av_frame_alloc();
-  if (!pFrame) {
+  videoState->v_pFrame = av_frame_alloc();
+  if (!videoState->v_pFrame) {
     LOG("Could not allocate AVFrame.\n");
     return (void *)-1;
   }
@@ -1545,7 +1558,7 @@ static void * video_thread(void * arg)
 
     while (ret >= 0) {
       // get decoded output data from decoder
-      ret = avcodec_receive_frame(videoState->video_ctx, pFrame);
+      ret = avcodec_receive_frame(videoState->video_ctx, videoState->v_pFrame);
 
       // check an entire frame was decoded
       if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
@@ -1558,7 +1571,7 @@ static void * video_thread(void * arg)
       }
 
       // attempt to guess proper monotonic timestamps for decoded video frames
-      pts = guess_correct_pts(videoState->video_ctx, pFrame->pts, pFrame->pkt_dts);
+      pts = guess_correct_pts(videoState->video_ctx, videoState->v_pFrame->pts, videoState->v_pFrame->pkt_dts);
 
       // in case we get an undefined timestamp value
       if (pts == AV_NOPTS_VALUE) {
@@ -1570,9 +1583,9 @@ static void * video_thread(void * arg)
 
       // did we get an entire video frame?
       if (frameFinished) {
-        pts = synchronize_video(videoState, pFrame, pts);
+        pts = synchronize_video(videoState, videoState->v_pFrame, pts);
 
-        if (queue_picture(videoState, pFrame, pts) < 0) {
+        if (queue_picture(videoState, videoState->v_pFrame, pts) < 0) {
           break;
         }
       }
@@ -1583,8 +1596,8 @@ static void * video_thread(void * arg)
   }
 
   // wipe the frame
-  av_frame_free(&pFrame);
-  av_free(pFrame);
+  av_frame_free(&videoState->v_pFrame);
+  av_free(videoState->v_pFrame);
 
   return 0;
 }
@@ -2438,7 +2451,7 @@ static void * alsa_audio_thread(void * arg)
   LOG("alsa_audio_thread started");
   VideoState * videoState = (VideoState *) arg;
 
-  usleep(1000); //(100000);
+  //usleep(1000); //(100000);
   LOG("Audio sample rate %d",videoState->audio_ctx->sample_rate);
 
   // ------------ ALSA init --------------
@@ -2617,16 +2630,15 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
     return -1;
   }
 
-  static uint8_t * audio_pkt_data = NULL;
-  static int audio_pkt_size = 0;
+  // static uint8_t * audio_pkt_data = NULL;
+  // static int audio_pkt_size = 0;
 
   double pts;
   int n;
 
   // allocate a new frame, used to decode audio packets
-  static AVFrame * avFrame = NULL;
-  avFrame = av_frame_alloc();
-  if (!avFrame) {
+  videoState->avFrame = av_frame_alloc();
+  if (!videoState->avFrame) {
     LOG("Could not allocate AVFrame.\n");
     return -1;
   }
@@ -2639,16 +2651,16 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
   for (;;) {
     // check global quit flag
     if (videoState->quit) {
-      av_frame_free(&avFrame);
+      av_frame_free(&videoState->avFrame);
       return -1;
     }
 
     // check if we obtained an AVPacket from the audio PacketQueue
-    while (audio_pkt_size > 0) {
+    while (videoState->audio_pkt_size > 0) {
       int got_frame = 0;
 
       // get decoded output data from decoder
-      int ret = avcodec_receive_frame(videoState->audio_ctx, avFrame);
+      int ret = avcodec_receive_frame(videoState->audio_ctx, videoState->avFrame);
 
       // check and entire audio frame was decoded
       if (ret == 0) {
@@ -2670,7 +2682,7 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
         ret = 0;
       } else if (ret < 0) {
         LOG("avcodec_receive_frame decoding error.\n");
-        av_frame_free(&avFrame);
+        av_frame_free(&videoState->avFrame);
         return -1;
       } else {
         len1 = avPacket->size;
@@ -2678,12 +2690,12 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
 
       if (len1 < 0) {
         // if error, skip frame
-        audio_pkt_size = 0;
+        videoState->audio_pkt_size = 0;
         break;
       }
 
-      audio_pkt_data += len1;
-      audio_pkt_size -= len1;
+      videoState->audio_pkt_data += len1;
+      videoState->audio_pkt_size -= len1;
       data_size = 0;
 
       // if we decoded an entire audio frame
@@ -2691,7 +2703,7 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
         // apply audio resampling to the decoded frame
         data_size = audio_resampling(
           videoState,
-          avFrame,
+          videoState->avFrame,
           AV_SAMPLE_FMT_S16,
           audio_buf
           );
@@ -2714,7 +2726,7 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
         // wipe the packet
         av_packet_unref(avPacket);
       }
-      av_frame_free(&avFrame);
+      av_frame_free(&videoState->avFrame);
 
       // we have the data, return it and come back for more later
       return data_size;
@@ -2739,8 +2751,8 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
       continue;
     }
 
-    audio_pkt_data = avPacket->data;
-    audio_pkt_size = avPacket->size;
+    videoState->audio_pkt_data = avPacket->data;
+    videoState->audio_pkt_size = avPacket->size;
 
     // keep audio_clock up-to-date
     if (avPacket->pts != AV_NOPTS_VALUE) {
@@ -2748,7 +2760,7 @@ static int audio_decode_frame(VideoState * videoState, uint8_t * audio_buf, int 
     }
   }
 
-  av_frame_free(&avFrame);
+  av_frame_free(&videoState->avFrame);
   return 0;
 }
 

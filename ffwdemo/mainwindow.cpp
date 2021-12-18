@@ -27,8 +27,8 @@ QString demo_video_names[] =  {
   "",
   "",
   "",
-  demo_videos_dir + "caminandes-2-gran-dillama.mp4",
   demo_videos_dir + "agent_327.mp4",
+  demo_videos_dir + "ironman.mp4",
   ""
 };
 

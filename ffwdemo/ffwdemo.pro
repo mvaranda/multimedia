@@ -31,6 +31,7 @@ LIBS += -lpthread \
     -lswscale \
     -lswresample \
     -lz \
+    -lasound \
     -lm -lSDL2
 
 INCLUDEPATH += ../libffwplayer
