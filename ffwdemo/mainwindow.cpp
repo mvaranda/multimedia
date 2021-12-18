@@ -5,6 +5,25 @@
 
 MainWindow * mainApp;
 
+//const char * demos[6] = {
+//  "rtsp://10.10.10.90/1"
+//  "Agent 327 - Blender Studio-1.mkv"
+//  "caminandes-2-gran-dillama.mp4"
+//  "sintel-the-movie-720p.mp4"
+//  "tears_of_steel_720p.mov"
+//};
+
+QString demo_videos_dir = "/home/mvaranda/Videos/";
+QString demo_video_names[] =  {
+  "rtsp://10.10.10.90/1",
+  demo_videos_dir + "Agent 327 - Blender Studio-1.mkv",
+  demo_videos_dir + "caminandes-2-gran-dillama.mp4",
+  demo_videos_dir + "sintel-the-movie-720p.mp4",
+  demo_videos_dir + "tears_of_steel_720p.mov",
+  ""
+};
+
+
 bool MainWindow::initPlayerResources()
 {
   //ffwplayer_t * ffw_h;
@@ -67,13 +86,10 @@ MainWindow::MainWindow(QWidget *parent)
 
   QImage image(":/images/3X_screen.png");
   for (int i=0; i < NUM_VIDEO_CELLS; i++) {
-    videoCells[i].t_url->setPlainText("/home/mvaranda/Videos/ironman.mp4");
+    videoCells[i].t_url->setPlainText(demo_video_names[i]);
     int w = videoCells[i].video_area->width();
     int h = videoCells[i].video_area->height();
     videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
-    // resize: https://exceptionshub.com/qt-resizing-a-qlabel-containing-a-qpixmap-while-keeping-its-aspect-ratio.html
-    //         https://stackoverflow.com/questions/14107144/how-do-i-make-an-image-resize-to-scale-in-qt
-
   }
   QString s = videoCells[0].t_url->toPlainText();
   const std::string& stdS = s.toStdString();

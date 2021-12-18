@@ -32,6 +32,9 @@
  *   - WIP: removing dependency on SDL (event and timer already removed). 
  *          for now only audio is using SDL. To be replace (by ALSA or Pulse).
  * 
+ *   to compile for SDL just type "make" command. 
+ *   to compile for Qt use Qt Creator and open project file under ../ffwdemo/ directory
+ * 
  **/
 
 #include <unistd.h>
