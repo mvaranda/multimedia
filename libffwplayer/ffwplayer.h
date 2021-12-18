@@ -1,25 +1,44 @@
 
-/******************************************
+/**
+ *
+ * original code from tutorial tutorial07.c
+ * "A pedagogical video player that really works! Now with seeking features.""
+ *
+ * Original tutorial was written by Stephen Dranger (dranger@gmail.com).
+ *
+ * Code based on FFplay, Copyright (c) 2003 Fabrice Bellard,
+ * and a tutorial by Martin Bohme (boehme@inb.uni-luebeckREMOVETHIS.de)
  * 
- * Simple messaging system across threads
+ * **********************************************************************
+ *   2018 version by Rambod Rahmani
  * 
- * License: GPL-3
- * Copyrights: Marcelo Varanda
+ *   Ref: https://github.com/rambodrahmani/ffmpeg-video-player
+ *
+ *   File:   tutorial07.c
+ *           This tutorial adds seeking functionalities to the player coded in tutorial06.c
+ *
+ *           Compiled using
+ *               gcc -o ffwplayer ffwplayer.c -lavutil -lavformat -lavcodec -lswscale -lswresample -lz -lm  `sdl2-config --cflags --libs`
+ *           on Arch Linux.
+ *
+ *           Please refer to previous tutorials for uncommented lines of code.
+ *
+ *   Author: Rambod Rahmani <rambodrahmani@autistici.org>
+ *           Created on 8/26/18.
+ *
+ * *********************************************************************
+ *   2021 version by Marcelo Varanda (m@varanda.ca)
+ *   - Support for running as a library for both Qt and SDL
+ *   - SDL version: window is now resizeble
+ *   - WIP: removing dependency on SDL (event and timer already removed). 
+ *          for now only audio is using SDL. To be replace (by ALSA or Pulse).
  * 
- ******************************************/
+ **/
 
 #pragma once
 
 #include <stdbool.h>
-//#include <SDL2/SDL.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/avstring.h>
-#include <libavutil/time.h>
-#include <libavutil/opt.h>
 #include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
-#include <libswresample/swresample.h>
 
 #include "msg_thread.h"
 

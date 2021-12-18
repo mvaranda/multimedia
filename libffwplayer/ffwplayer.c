@@ -1,5 +1,16 @@
 /**
  *
+ * original code from tutorial tutorial07.c
+ * "A pedagogical video player that really works! Now with seeking features.""
+ *
+ * Original tutorial was written by Stephen Dranger (dranger@gmail.com).
+ *
+ * Code based on FFplay, Copyright (c) 2003 Fabrice Bellard,
+ * and a tutorial by Martin Bohme (boehme@inb.uni-luebeckREMOVETHIS.de)
+ * 
+ * **********************************************************************
+ *   2018 version by Rambod Rahmani
+ * 
  *   Ref: https://github.com/rambodrahmani/ffmpeg-video-player
  *
  *   File:   tutorial07.c
@@ -14,6 +25,13 @@
  *   Author: Rambod Rahmani <rambodrahmani@autistici.org>
  *           Created on 8/26/18.
  *
+ * *********************************************************************
+ *   2021 version by Marcelo Varanda (m@varanda.ca)
+ *   - Support for running as a library for both Qt and SDL
+ *   - SDL version: window is now resizeble
+ *   - WIP: removing dependency on SDL (event and timer already removed). 
+ *          for now only audio is using SDL. To be replace (by ALSA or Pulse).
+ * 
  **/
 
 #include <unistd.h>
