@@ -17,6 +17,7 @@ LINK_FLAGS = -g -pthread \
               -lswresample \
               -lz \
               -lm \
+              -lasound \
               `sdl2-config --libs`
 
 all: ${EXEC}

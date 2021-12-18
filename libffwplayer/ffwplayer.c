@@ -265,6 +265,7 @@ typedef struct VideoState {
   AVPacket flush_pkt;
 
   pthread_t video_timer_tid;
+  pthread_t audio_thread_tid;
   unsigned int video_timer_delay;
   ffwplayer_t * parent_ffw;
 
@@ -413,6 +414,8 @@ static int audio_resampling(
   uint8_t * out_buf
   );
 
+static void * alsa_audio_thread(void * arg);
+
 static AudioResamplingState * getAudioResampling(uint64_t channel_layout);
 
 static void stream_seek(VideoState * videoState, int64_t pos, int rel);
@@ -454,6 +457,7 @@ void * ffw_thread(void * arg)
   ffw->private_data = videoState;
 
   videoState->video_timer_tid = -1;
+  videoState->audio_thread_tid = -1;
   // set global VideoState reference
   global_video_state = videoState;
 
@@ -1154,6 +1158,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
 
   // in case of Audio codec, set up and open the audio device
   if (codecCtx->codec_type == AVMEDIA_TYPE_AUDIO) {
+#ifdef USE_SDL_AUDIO
     // desired and obtained audio specs references
     SDL_AudioSpec wanted_specs;
     SDL_AudioSpec specs;
@@ -1180,7 +1185,19 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         return -1;
       }
     }
+#else // use ALSA 
+
+    videoState->audio_thread_tid = ffw_create_thread(
+      "audio_thread",                                         // name
+      0,                                                      // stack size
+      20,                                                     // int priority,
+      alsa_audio_thread,                                      // void * ( *thread_entry)(void *),
+      videoState,
+      true);                                                  // detached
+
+#endif // #ifdef USE_SDL_AUDIO
   }
+
 
   // initialize the AVCodecContext to use the given AVCodec
   if (avcodec_open2(codecCtx, codec, NULL) < 0) {
@@ -1200,6 +1217,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
       videoState->audio_buf_size = 0;
       videoState->audio_buf_index = 0;
 
+
       // zero out the block of memory pointed by videoState->audio_pkt
       memset(&videoState->audio_pkt, 0, sizeof(videoState->audio_pkt));
 
@@ -1207,7 +1225,9 @@ static int stream_component_open(VideoState * videoState, int stream_index)
       packet_queue_init(&videoState->audioq);
 
       // start playing audio on the first audio device
+#ifdef USE_SDL_AUDIO
       SDL_PauseAudio(0);
+#endif
     }
     break;
 
@@ -1249,7 +1269,9 @@ static int stream_component_open(VideoState * videoState, int stream_index)
                                            NULL
                                            );
       //
+#ifdef USE_SDL_AUDIO
       SDL_GL_SetSwapInterval(1);
+#endif // #ifdef USE_SDL_AUDIO
 
       // initialize global SDL_Surface mutex reference
       // screen_mutex = SDL_CreateMutex();
@@ -2390,6 +2412,115 @@ static void packet_queue_flush(PacketQueue * queue)
   queue->size = 0;
 
   pthread_mutex_unlock(&queue->mutex);
+}
+
+
+/* Use the newer ALSA API */
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#include <alsa/asoundlib.h>
+static void * alsa_audio_thread(void * arg)
+{
+  struct timespec tm;
+
+  int rc;
+  int size;
+  snd_pcm_t *handle;
+  snd_pcm_hw_params_t *params;
+  unsigned int val;
+  int dir;
+  snd_pcm_uframes_t frames;
+  char *buffer;
+  tm.tv_sec = 0;
+  tm.tv_nsec = 50000000 / 2;
+
+  Uint8 buf[2205];
+  //50ms @ 44100 = 4410 samples... *  4 bytes per sample = 2205 bytes
+  LOG("alsa_audio_thread started");
+  VideoState * videoState = (VideoState *) arg;
+
+  usleep(1000); //(100000);
+  LOG("Audio sample rate %d",videoState->audio_ctx->sample_rate);
+
+  // ------------ ALSA init --------------
+  /* Open PCM device for playback. */
+  rc = snd_pcm_open(&handle, "default",
+                    SND_PCM_STREAM_PLAYBACK, 0);
+  if (rc < 0) {
+    LOG_E("unable to open pcm device: %s", snd_strerror(rc));
+    videoState->quit = 1;
+    return NULL;
+  }
+
+  snd_pcm_hw_params_alloca(&params);
+  snd_pcm_hw_params_any(handle, params);
+  snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+  snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE);
+  snd_pcm_hw_params_set_channels(handle, params, videoState->audio_ctx->channels);
+
+  /* 44100 bits/second sampling rate (CD quality) */
+  val = videoState->audio_ctx->sample_rate;
+  snd_pcm_hw_params_set_rate_near(handle, params,
+                                  &val, &dir);
+
+  /* Set period size to 32 frames. */
+  frames = 32;
+  snd_pcm_hw_params_set_period_size_near(handle, params, &frames, &dir);
+
+  /* Write the parameters to the driver */
+  rc = snd_pcm_hw_params(handle, params);
+  if (rc < 0) {
+    LOG_E("unable to set hw parameters: %s\n", snd_strerror(rc));
+    return NULL;
+  }
+
+  /* Use a buffer large enough to hold one period */
+  snd_pcm_hw_params_get_period_size(params, &frames, &dir);
+  size = frames * 4; /* 2 bytes/sample, 2 channels */
+  buffer = (char *) malloc(size);
+
+  LOG("size = %d, frames = %d", size, frames);
+
+  /* We want to loop for 5 seconds */
+  snd_pcm_hw_params_get_period_time(params, &val, &dir);
+
+  while (videoState->quit == 0) {
+    //loops--;
+    audio_callback(arg, buffer, size);
+    // rc = read(0, buffer, size);
+    // if (rc == 0) {
+    //   fprintf(stderr, "end of file on input\n");
+    //   break;
+    // } else if (rc != size) {
+    //   fprintf(stderr,
+    //           "short read: read %d bytes\n", rc);
+    // }
+    rc = snd_pcm_writei(handle, buffer, frames);
+    if (rc == -EPIPE) {
+      /* EPIPE means underrun */
+      fprintf(stderr, "underrun occurred\n");
+      snd_pcm_prepare(handle);
+    } else if (rc < 0) {
+      fprintf(stderr,
+              "error from writei: %s\n",
+              snd_strerror(rc));
+    }  else if (rc != (int)frames) {
+      fprintf(stderr,
+              "short write, write %d frames\n", rc);
+    }
+  }
+
+
+  // while (videoState->quit == 0) {
+  //   audio_callback(arg, buf, sizeof(buf));
+  //   //usleep(50000);
+  //   nanosleep(&tm, NULL);
+  // }
+
+  snd_pcm_drain(handle);
+  snd_pcm_close(handle);
+  free(buffer);
+
+  LOG("exit audio thread");
 }
 
 /**
