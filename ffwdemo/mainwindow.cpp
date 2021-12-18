@@ -3,7 +3,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_thread.h>
 
-
+MainWindow * mainApp;
 
 bool MainWindow::initPlayerResources()
 {
@@ -12,6 +12,7 @@ bool MainWindow::initPlayerResources()
   //msg_t msg;
 
   //log_init();
+  mainApp = this;
 
 
   int ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
@@ -80,22 +81,41 @@ MainWindow::MainWindow(QWidget *parent)
   memset(buf, 0, sizeof(buf));
   memcpy(buf, stdS.c_str(), stdS.length());
 
+  connect(this, &MainWindow::imageChanged, this, [&](QImage image){
+    int w = videoCells[0].video_area->width();
+    int h = videoCells[0].video_area->height();
+    videoCells[0].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
+  });
+
 #if 1
   if ( ! (videoCells[0].ffw_h = ffw_create_player(buf, main_msg_th, 0))) {
     LOG_E("No memo for ffwplayer_t object");
   }
 #endif
 
-
-
-
-
-
 }
 
 MainWindow::~MainWindow()
 {
   delete ui;
+}
+
+void MainWindow::updatePicture(ffwplayer_t * ffw, VideoPicture * video_picture)
+{
+  QImage *image = new QImage(QSize(video_picture->width, video_picture->height), QImage::Format_RGB32);
+  void * data_ptr = video_picture->frame->data[0];
+  memcpy(image->bits(), data_ptr, static_cast<size_t>(image->sizeInBytes()));
+  emit imageChanged(*image);
+  delete image;
+}
+
+extern "C" {
+
+void update_picture_widget(ffwplayer_t * ffw, VideoPicture * video_picture)
+{
+  mainApp->updatePicture(ffw, video_picture);
+}
+
 }
 
 

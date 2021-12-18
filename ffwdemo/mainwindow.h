@@ -31,6 +31,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void updatePicture(ffwplayer_t * ffw, VideoPicture * video_picture);
+
 private:
     Ui::MainWindow *ui;
     QLabel * video_area_0 = nullptr;
@@ -41,5 +43,8 @@ private:
     msg_thread_h main_msg_th;
 
     bool initPlayerResources();
+
+signals:
+    void imageChanged(QImage image);
 };
 #endif // MAINWINDOW_H

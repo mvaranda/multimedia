@@ -144,17 +144,6 @@ typedef struct PacketQueue {
 } PacketQueue;
 
 /**
- * Queue structure used to store processed video frames.
- */
-typedef struct VideoPicture {
-  AVFrame * frame;
-  int width;
-  int height;
-  int allocated;
-  double pts;
-} VideoPicture;
-
-/**
  * Struct used to hold the format context, the indices of the audio and video stream,
  * the corresponding AVStream objects, the audio and video codec information,
  * the audio and video queues and buffers, the global quit flag and the filename of
@@ -256,6 +245,7 @@ typedef struct VideoState {
 
   pthread_t video_timer_tid;
   unsigned int video_timer_delay;
+  ffwplayer_t * parent_ffw;
 
 } VideoState;
 
@@ -424,6 +414,8 @@ static void stream_seek(VideoState * videoState, int64_t pos, int rel);
 #define GREETINGS "ffwplayer demo - ver 0.0.1\n\n"
 #define PROMPT "$ "
 
+extern void update_picture_widget(ffwplayer_t * ffw, VideoPicture * video_picture);
+
 void * ffw_thread(void * arg)
 {
   bool ret_bool;
@@ -436,6 +428,8 @@ void * ffw_thread(void * arg)
 
   // allocate memory for the VideoState and zero it out
   videoState = av_mallocz(sizeof(VideoState));
+  videoState->parent_ffw = ffw;
+
   ffw->private_data = videoState;
 
   videoState->video_timer_tid = -1;
@@ -1228,7 +1222,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
                                            NULL,
                                            NULL
                                            );
-
+#ifndef QT_PLATF
       // create a window with the specified position, dimensions, and flags.
       videoState->screen = SDL_CreateWindow(
         "FFmpeg SDL Video Player",
@@ -1244,7 +1238,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         LOG("SDL: could not create window - exiting.\n");
         return -1;
       }
-
+#endif
       //
       SDL_GL_SetSwapInterval(1);
 
@@ -2070,7 +2064,7 @@ static void video_display(VideoState * videoState)
     int screen_height;
 
 #ifdef QT_PLATF
-
+    update_picture_widget(videoState->parent_ffw, videoPicture);
 #else
     // MV: work around to get window resize updating its internal width and heigth
     SDL_Event ev;
@@ -2147,14 +2141,7 @@ static void video_display(VideoState * videoState)
         videoState->texture,
         &rect_picture, // &rect,
         videoPicture->frame->data[0],
-        *videoPicture->frame->linesize); //rect_picture.w * 4);
-        // ->data[0],
-        // videoPicture->frame->linesize[0],
-        // videoPicture->frame->data[1],
-        // videoPicture->frame->linesize[1],
-        // videoPicture->frame->data[2],
-        // videoPicture->frame->linesize[2]
-        // );
+        *videoPicture->frame->linesize);
 #else
       SDL_UpdateYUVTexture(
         videoState->texture,

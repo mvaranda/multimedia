@@ -11,6 +11,16 @@
 #pragma once
 
 #include <stdbool.h>
+//#include <SDL2/SDL.h>
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/avstring.h>
+#include <libavutil/time.h>
+#include <libavutil/opt.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+
 #include "msg_thread.h"
 
 /**
@@ -40,6 +50,17 @@ typedef struct ffwplayer_st {
   void *        private_data;
   void *        client_data;
 } ffwplayer_t;
+
+/**
+ * Queue structure used to store processed video frames.
+ */
+typedef struct VideoPicture {
+  AVFrame * frame;
+  int width;
+  int height;
+  int allocated;
+  double pts;
+} VideoPicture;
 
 #ifdef __cplusplus
   extern "C" {
