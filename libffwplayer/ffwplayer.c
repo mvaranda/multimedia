@@ -1222,6 +1222,13 @@ static int stream_component_open(VideoState * videoState, int stream_index)
                                            NULL,
                                            NULL
                                            );
+      //
+      SDL_GL_SetSwapInterval(1);
+
+      // initialize global SDL_Surface mutex reference
+      // screen_mutex = SDL_CreateMutex();
+      pthread_mutex_init(&videoState->screen_mutex, NULL);
+
 #ifndef QT_PLATF
       // create a window with the specified position, dimensions, and flags.
       videoState->screen = SDL_CreateWindow(
@@ -1238,13 +1245,8 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         LOG("SDL: could not create window - exiting.\n");
         return -1;
       }
-#endif
-      //
-      SDL_GL_SetSwapInterval(1);
 
-      // initialize global SDL_Surface mutex reference
-      // screen_mutex = SDL_CreateMutex();
-      pthread_mutex_init(&videoState->screen_mutex, NULL);
+
 
       // create a 2D rendering context for the SDL_Window
       videoState->renderer = SDL_CreateRenderer(videoState->screen, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
@@ -1257,6 +1259,7 @@ static int stream_component_open(VideoState * videoState, int stream_index)
         videoState->video_ctx->width,
         videoState->video_ctx->height
         );
+#endif
     }
     break;
 
