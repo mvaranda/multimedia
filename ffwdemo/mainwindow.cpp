@@ -1,53 +1,32 @@
+/******************************************
+ *
+ *             Multiplayer Demo
+ *
+ * License: GPL-3
+ * Copyrights: Marcelo Varanda
+ *
+ ******************************************/
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_thread.h>
 
 MainWindow * mainApp;
 
-//const char * demos[6] = {
-//  "rtsp://10.10.10.90/1"
-//  "Agent 327 - Blender Studio-1.mkv"
-//  "caminandes-2-gran-dillama.mp4"
-//  "sintel-the-movie-720p.mp4"
-//  "tears_of_steel_720p.mov"
-//};
-
 QString demo_videos_dir = "/home/mvaranda/Videos/";
-//QString demo_video_names[] =  {
-//  "rtsp://10.10.10.90/1",
-//  demo_videos_dir + "Agent 327 - Blender Studio-1.mkv",
-//  demo_videos_dir + "caminandes-2-gran-dillama.mp4",
-//  demo_videos_dir + "sintel-the-movie-720p.mp4",
-//  demo_videos_dir + "tears_of_steel_720p.mov",
-//  ""
-//};
-
 QString demo_video_names[] =  {
-  "",
-  "",
-  "",
+  "rtsp://10.10.10.90/1",
   demo_videos_dir + "agent_327.mp4",
-  demo_videos_dir + "ironman.mp4",
+  demo_videos_dir + "caminandes-2-gran-dillama.mp4",
+  demo_videos_dir + "sintel-the-movie-720p.mp4",
+  demo_videos_dir + "tears_of_steel_720p.mov",
   ""
 };
 
 
 bool MainWindow::initPlayerResources()
 {
-  //ffwplayer_t * ffw_h;
   msg_thread_h main_msg_th;
-  //msg_t msg;
-
-  //log_init();
   mainApp = this;
-
-
-  int ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
-  if (ret != 0) {
-    LOG("Could not initialize SDL - %s\n.", SDL_GetError());
-    return false;
-  }
 
   // create a message queue for this main thread
   if ( ! (main_msg_th = reg_msg_thread(pthread_self(), 6)) ) {
@@ -55,10 +34,6 @@ bool MainWindow::initPlayerResources()
     return false;
   }
 
-//  if ( ! (ffw_h = ffw_create_player(argv[1], main_msg_th, 0))) {
-//    LOG_E("No memo for ffwplayer_t object");
-//    return -1;
-//  }
   return true;
 }
 
@@ -71,27 +46,33 @@ MainWindow::MainWindow(QWidget *parent)
   videoCells[0].video_area = ui->lb_video_area_0;
   videoCells[0].t_url = ui->t_url_0;
   videoCells[0].bt_file = ui->bt_select_file_0;
+  videoCells[0].chk_mute = ui->bt_mute_0;
 
   videoCells[1].video_area = ui->lb_video_area_1;
   videoCells[1].t_url = ui->t_url_1;
   videoCells[1].bt_file = ui->bt_select_file_1;
+  videoCells[1].chk_mute = ui->bt_mute_1;
 
   videoCells[2].video_area = ui->lb_video_area_2;
   videoCells[2].t_url = ui->t_url_2;
   videoCells[2].bt_file = ui->bt_select_file_2;
+  videoCells[2].chk_mute = ui->bt_mute_2;
 
   videoCells[3].video_area = ui->lb_video_area_10;
   videoCells[3].t_url = ui->t_url_10;
   videoCells[3].bt_file = ui->bt_select_file_10;
+  videoCells[3].chk_mute = ui->bt_mute_3;
 
   videoCells[4].video_area = ui->lb_video_area_11;
   videoCells[4].t_url = ui->t_url_11;
   videoCells[4].bt_file = ui->bt_select_file_11;
+  videoCells[4].chk_mute = ui->bt_mute_4;
 
 
   videoCells[5].video_area = ui->lb_video_area_12;
   videoCells[5].t_url = ui->t_url_12;
   videoCells[5].bt_file = ui->bt_select_file_12;
+  videoCells[5].chk_mute = ui->bt_mute_5;
 
   QImage image(":/images/3X_screen.png");
   for (int i=0; i < NUM_VIDEO_CELLS; i++) {
@@ -100,6 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
     int w = videoCells[i].video_area->width();
     int h = videoCells[i].video_area->height();
     videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
+    videoCells[i].chk_mute->setChecked(true);
   }
 
 
@@ -109,17 +91,6 @@ MainWindow::MainWindow(QWidget *parent)
     int h = videoCells[i].video_area->height();
     videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
   });
-
-#if 0
-  QString s = videoCells[0].t_url->toPlainText();
-  const std::string& stdS = s.toStdString();
-  char buf[MAX_URL_LEN];
-  memset(buf, 0, sizeof(buf));
-  memcpy(buf, stdS.c_str(), stdS.length());
-  if ( ! (videoCells[0].ffw_h = ffw_create_player(buf, main_msg_th, 0))) {
-    LOG_E("No memo for ffwplayer_t object");
-  }
-#endif
 
 }
 
@@ -170,7 +141,52 @@ void MainWindow::on_pushButton_clicked()
     memcpy(buf, stdS.c_str(), stdS.length());
     if ( ! (videoCells[i].ffw_h = ffw_create_player(buf, main_msg_th, (void *) i))) {
       LOG_E("No memo for ffwplayer_t object");
+    } else {
+      // mute
+      ffw_mute(videoCells[i].ffw_h, true);
     }
   }
+}
+
+void MainWindow::handleMute(int i)
+{
+  if (videoCells[i].ffw_h == NULL) return;
+
+  if (videoCells[i].chk_mute->checkState()) {
+    LOG("mute");
+    ffw_mute(videoCells[i].ffw_h, true);
+  } else {
+    LOG("unmute");
+    ffw_mute(videoCells[i].ffw_h, false);
+  }
+}
+void MainWindow::on_bt_mute_0_stateChanged(int arg1)
+{
+  handleMute(0);
+}
+
+void MainWindow::on_bt_mute_1_stateChanged(int arg1)
+{
+  handleMute(1);
+}
+
+void MainWindow::on_bt_mute_2_stateChanged(int arg1)
+{
+  handleMute(2);
+}
+
+void MainWindow::on_bt_mute_3_stateChanged(int arg1)
+{
+  handleMute(3);
+}
+
+void MainWindow::on_bt_mute_4_stateChanged(int arg1)
+{
+  handleMute(4);
+}
+
+void MainWindow::on_bt_mute_5_stateChanged(int arg1)
+{
+  handleMute(5);
 }
 

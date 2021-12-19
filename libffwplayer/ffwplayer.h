@@ -97,6 +97,7 @@ void ffwplayer_init(void);
 ffwplayer_t * ffw_create_player(char * url, msg_thread_h parent_msg_th, void * client_data);
 bool ffw_seek_relative(ffwplayer_t * ffw_t, int val);
 bool ffw_destroy(ffwplayer_t * ffw_t);
+void ffw_mute(ffwplayer_t * ffw_t, bool mute);
 
 #ifdef __cplusplus
   }

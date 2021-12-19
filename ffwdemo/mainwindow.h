@@ -1,3 +1,13 @@
+/******************************************
+ *
+ *             Multiplayer Demo
+ *
+ * License: GPL-3
+ * Copyrights: Marcelo Varanda
+ *
+ ******************************************/
+
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -5,6 +15,7 @@
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QCheckBox>
 
 #include "log.h"
 #include "msg_thread.h"
@@ -32,7 +43,9 @@ public:
         QLabel * video_area = nullptr;
         QPlainTextEdit * t_url = nullptr;
         QPushButton * bt_file = nullptr;
+        QCheckBox * chk_mute = nullptr;
         ffwplayer_t * ffw_h = nullptr;
+
     };
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -49,10 +62,17 @@ private:
     msg_thread_h main_msg_th;
 
     bool initPlayerResources();
+    void handleMute(int i);
 
 signals:
     void imageChanged(QImage image, ffwplayer_t * ffw);
 private slots:
     void on_pushButton_clicked();
+    void on_bt_mute_0_stateChanged(int arg1);
+    void on_bt_mute_1_stateChanged(int arg1);
+    void on_bt_mute_2_stateChanged(int arg1);
+    void on_bt_mute_3_stateChanged(int arg1);
+    void on_bt_mute_4_stateChanged(int arg1);
+    void on_bt_mute_5_stateChanged(int arg1);
 };
 #endif // MAINWINDOW_H

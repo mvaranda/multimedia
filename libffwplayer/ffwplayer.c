@@ -51,6 +51,7 @@
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_thread.h>
 
@@ -271,6 +272,7 @@ typedef struct VideoState {
 
   AVFrame * v_pFrame;
   AVFrame * avFrame;
+  bool mute;
   //uint8_t * audio_pkt_data;
   //int audio_pkt_size;
 
@@ -559,10 +561,12 @@ ffwplayer_t * ffw_create_player(char * _url, msg_thread_h parent_msg_th, void * 
     6 );                            // int msg_queue_size);
 
 
-    if ( ! ffw->msg_th) {
-     LOG_E("fail to create ffw thread");
-     return NULL;  
-    }
+  usleep(10000); // give time to the thread to start up
+
+  if ( ! ffw->msg_th) {
+   LOG_E("fail to create ffw thread");
+   return NULL;
+  }
 
   return ffw;
 }
@@ -586,6 +590,12 @@ bool ffw_destroy(ffwplayer_t * ffw_h)
   msg.msg_id = MSG_ID__EOS;
   post_msg(NULL, ffw_h->msg_th, &msg);
   return true;
+}
+
+void ffw_mute(ffwplayer_t * ffw_t, bool mute)
+{
+  VideoState * videoState = (VideoState *) ffw_t->private_data;
+  videoState->mute = mute;
 }
 
 #ifdef TEST_FFWPLAYER_LIBRARY
@@ -923,7 +933,25 @@ static void * format_demux_thread(void * arg)
 
   // file I/O context: demuxers read a media file and split it into chunks of data (packets)
   AVFormatContext * pFormatCtx = NULL;
-  int ret = avformat_open_input(&pFormatCtx, videoState->filename, NULL, NULL);
+
+  AVInputFormat* input_format = NULL;
+  AVDictionary *opt = NULL;
+
+
+  pFormatCtx = avformat_alloc_context();
+  if (strstr(videoState->filename, "/dev/")) {
+    LOG("Set webcam v4l2");
+    // av_dict_set(&opt, "vcodec", "mjpeg", 0);
+    // av_dict_set(&opt, "s", "640x480", 0); //"1280x720", 0);
+    // av_dict_set(&opt, "framerate", "30", 0);
+    // av_dict_set(&opt,"list_devices","true",0);
+    input_format = av_find_input_format("video4linux2");
+    //pFormatCtx->video_codec_id = AV_CODEC_ID_MJPEG;
+    //av_format_set_video_codec(pFormatCtx, opened_mjpeg_codec);
+  }
+  
+
+  int ret = avformat_open_input(&pFormatCtx, videoState->filename, input_format, NULL);//&opt);
 
   if (ret < 0) {
     LOG("Could not open file %s.\n", videoState->filename);
@@ -2497,16 +2525,12 @@ static void * alsa_audio_thread(void * arg)
   snd_pcm_hw_params_get_period_time(params, &val, &dir);
 
   while (videoState->quit == 0) {
-    //loops--;
+
     audio_callback(arg, buffer, size);
-    // rc = read(0, buffer, size);
-    // if (rc == 0) {
-    //   fprintf(stderr, "end of file on input\n");
-    //   break;
-    // } else if (rc != size) {
-    //   fprintf(stderr,
-    //           "short read: read %d bytes\n", rc);
-    // }
+
+    if (videoState->mute) {
+      memset(buffer, 0, size); // silence
+    }
     rc = snd_pcm_writei(handle, buffer, frames);
     if (rc == -EPIPE) {
       /* EPIPE means underrun */
@@ -2521,13 +2545,6 @@ static void * alsa_audio_thread(void * arg)
               "short write, write %d frames\n", rc);
     }
   }
-
-
-  // while (videoState->quit == 0) {
-  //   audio_callback(arg, buf, sizeof(buf));
-  //   //usleep(50000);
-  //   nanosleep(&tm, NULL);
-  // }
 
   snd_pcm_drain(handle);
   snd_pcm_close(handle);
