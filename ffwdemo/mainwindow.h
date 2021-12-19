@@ -85,5 +85,10 @@ private slots:
     void doFull();
     void doNormal();
 
+    void on_lb_video_area_1_customContextMenuRequested(const QPoint &pos);
+    void on_lb_video_area_2_customContextMenuRequested(const QPoint &pos);
+    void on_lb_video_area_10_customContextMenuRequested(const QPoint &pos);
+    void on_lb_video_area_11_customContextMenuRequested(const QPoint &pos);
+    void on_lb_video_area_12_customContextMenuRequested(const QPoint &pos);
 };
 #endif // MAINWINDOW_H

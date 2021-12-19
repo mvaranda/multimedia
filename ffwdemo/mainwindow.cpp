@@ -9,7 +9,9 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QScreen>
 
+#define DEMO_VERSION "0.0.1"
 MainWindow * mainApp;
 
 QString demo_videos_dir = "/home/mvaranda/Videos/";
@@ -42,7 +44,11 @@ MainWindow::MainWindow(QWidget *parent)
   , ui(new Ui::MainWindow)
 {
   initPlayerResources();
+
   ui->setupUi(this);
+  setWindowTitle("Multi-Camera Player - Version " DEMO_VERSION);
+  move(screen()->geometry().center() - frameGeometry().center());
+
   videoCells[0].video_area = ui->lb_video_area_0;
   videoCells[0].t_url = ui->t_url_0;
   videoCells[0].bt_file = ui->bt_select_file_0;
@@ -259,11 +265,44 @@ void MainWindow::doVideoContextMenu(int i, const QPoint &pos)
   menu->addAction(actNormal);
 
   /* Call the context menu */
-  menu->popup(mapToGlobal(pos));
+  QPoint globalCursorPos = videoCells[i].video_area->mapTo(this,pos);
+
+  menu->popup(mapToGlobal(globalCursorPos));
+  //menu->popup(mapToGlobal(pos));
 }
 
 void MainWindow::on_lb_video_area_0_customContextMenuRequested(const QPoint &pos)
 {
   doVideoContextMenu(0, pos);
+}
+
+
+void MainWindow::on_lb_video_area_1_customContextMenuRequested(const QPoint &pos)
+{
+  doVideoContextMenu(1, pos);
+}
+
+
+void MainWindow::on_lb_video_area_2_customContextMenuRequested(const QPoint &pos)
+{
+  doVideoContextMenu(2, pos);
+}
+
+
+void MainWindow::on_lb_video_area_10_customContextMenuRequested(const QPoint &pos)
+{
+  doVideoContextMenu(3, pos);
+}
+
+
+void MainWindow::on_lb_video_area_11_customContextMenuRequested(const QPoint &pos)
+{
+  doVideoContextMenu(4, pos);
+}
+
+
+void MainWindow::on_lb_video_area_12_customContextMenuRequested(const QPoint &pos)
+{
+  doVideoContextMenu(5, pos);
 }
 
