@@ -81,6 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
     int w = videoCells[i].video_area->width();
     int h = videoCells[i].video_area->height();
     videoCells[i].video_area->setPixmap(QPixmap::fromImage(image).scaled(w,h,Qt::KeepAspectRatio));
+    videoCells[i].video_area->setContextMenuPolicy(Qt::CustomContextMenu);
     videoCells[i].chk_mute->setChecked(true);
   }
 
@@ -188,5 +189,81 @@ void MainWindow::on_bt_mute_4_stateChanged(int arg1)
 void MainWindow::on_bt_mute_5_stateChanged(int arg1)
 {
   handleMute(5);
+}
+
+void MainWindow::doPlay()
+{
+  int i = videoContextMenuItemIdx;
+  LOG("doPlay %d", i);
+
+
+}
+
+void MainWindow::doPause()
+{
+  int i = videoContextMenuItemIdx;
+  LOG("doPause %d", i);
+
+
+}
+
+void MainWindow::doStop()
+{
+  int i = videoContextMenuItemIdx;
+  LOG("doStop %d", i);
+
+
+}
+
+void MainWindow::doFull()
+{
+  int i = videoContextMenuItemIdx;
+  LOG("doFull %d", i);
+
+  videoCells[i].video_area->setWindowFlags(videoCells[i].video_area->windowFlags() | Qt::Window);
+  videoCells[i].video_area->show();
+  //ui->myImage->showMaximized();
+  videoCells[i].video_area->showFullScreen();
+}
+
+void MainWindow::doNormal  ()
+{
+  int i = videoContextMenuItemIdx;
+  LOG("doNormal %d", i);
+
+  videoCells[i].video_area->setWindowFlag(Qt::Window, false);
+  videoCells[i].video_area->show();
+}
+
+void MainWindow::doVideoContextMenu(int i, const QPoint &pos)
+{
+  videoContextMenuItemIdx = i;
+  QMenu * menu = new QMenu(this);
+  /* Create actions to the context menu */
+  QAction * actPlay = new QAction(QString("Play"), this);
+  QAction * actPause = new QAction(QString("Pause"), this);
+  QAction * actStop = new QAction(QString("Stop"), this);
+  QAction * actFull = new QAction(QString("Full Screen"), this);
+  QAction * actNormal = new QAction(QString("Normal Screen"), this);
+
+  connect(actPlay, SIGNAL(triggered()), this, SLOT(doPlay()));
+  connect(actPause, SIGNAL(triggered()), this, SLOT(doPause()));
+  connect(actStop, SIGNAL(triggered()), this, SLOT(doStop()));
+  connect(actFull, SIGNAL(triggered()), this, SLOT(doFull()));
+  connect(actNormal, SIGNAL(triggered()), this, SLOT(doNormal()));
+
+  menu->addAction(actPlay);
+  menu->addAction(actPause);
+  menu->addAction(actStop);
+  menu->addAction(actFull);
+  menu->addAction(actNormal);
+
+  /* Call the context menu */
+  menu->popup(mapToGlobal(pos));
+}
+
+void MainWindow::on_lb_video_area_0_customContextMenuRequested(const QPoint &pos)
+{
+  doVideoContextMenu(0, pos);
 }
 

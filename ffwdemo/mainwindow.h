@@ -60,9 +60,12 @@ private:
 
     VideoCell videoCells[NUM_VIDEO_CELLS];
     msg_thread_h main_msg_th;
+    int videoContextMenuItemIdx;
 
     bool initPlayerResources();
     void handleMute(int i);
+    void doVideoContextMenu(int i, const QPoint &pos);
+
 
 signals:
     void imageChanged(QImage image, ffwplayer_t * ffw);
@@ -74,5 +77,13 @@ private slots:
     void on_bt_mute_3_stateChanged(int arg1);
     void on_bt_mute_4_stateChanged(int arg1);
     void on_bt_mute_5_stateChanged(int arg1);
+    void on_lb_video_area_0_customContextMenuRequested(const QPoint &pos);
+
+    void doPlay();
+    void doPause();
+    void doStop();
+    void doFull();
+    void doNormal();
+
 };
 #endif // MAINWINDOW_H
