@@ -1,0 +1,68 @@
+
+
+<!DOCTYPE html>
+<html>
+   <head>
+      <style>
+         table, td {
+         border: 1px solid black;
+         }
+      </style>
+   </head>
+   <body>
+      <p>Click the button to return the number of cells in the table's first row.</p>
+      <table id="myTable">
+         <tr>
+            <td>
+               <video width="320" height="240" controls>
+                  <source src="file:///home/mvaranda/Videos/caminandes-2-gran-dillama.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+               </video>
+            </td>
+            <td>
+               <video width="320" height="240" controls>
+                  <source src="file:///home/mvaranda/Videos/caminandes-2-gran-dillama.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+               </video>
+            </td>
+            <td>
+               <video width="320" height="240" controls>
+                  <source src="file:///home/mvaranda/Videos/caminandes-2-gran-dillama.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+               </video>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <video width="320" height="240" controls>
+                  <source src="file:///home/mvaranda/Videos/caminandes-2-gran-dillama.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+               </video>
+            </td>
+            <td>
+               <video width="320" height="240" controls>
+                  <source src="file:///home/mvaranda/Videos/caminandes-2-gran-dillama.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+               </video>
+            </td>
+            <td>
+               <video width="320" height="240" controls>
+                  <source src="file:///home/mvaranda/Videos/caminandes-2-gran-dillama.mp4" type="video/mp4">
+                  Your browser does not support the video tag.
+               </video>
+            </td>
+         </tr>
+      </table>
+      <br> 
+      <button onclick="myFunction()">Try it</button>
+      <p id="demo"></p>
+      <script>
+         function myFunction() {
+           var x = document.getElementById("myTable").rows[0].cells.length;
+           document.getElementById("demo").innerHTML = "Found " + x + " cells in the first tr element.";
+         }
+      </script>
+   </body>
+</html>
+
+
