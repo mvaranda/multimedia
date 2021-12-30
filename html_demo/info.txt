@@ -1,0 +1,7 @@
+to build:
+  npm install express
+  npm install ejs
+
+to run:
+  node server.js
+
