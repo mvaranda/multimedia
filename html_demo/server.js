@@ -4,6 +4,9 @@ var app = express();
 // set the view engine to ejs
 app.set('view engine', 'ejs');
 
+//app.use('/videos/'); // add path for videos
+app.use('/videos/', express.static('./videos/'));
+
 // use res.render to load up an ejs view file
 
 // index page
