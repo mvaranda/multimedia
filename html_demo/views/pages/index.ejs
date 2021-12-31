@@ -15,19 +15,16 @@
          <tr>
             <td>
                <video id="v0" width="320" height="240" controls>
-                  <source src="videos/agent_327.mp4" type="video/mp4">
                   Your browser does not support the video tag.
                </video>
             </td>
             <td>
                <video id="v1" width="320" height="240" controls>
-                  <source src="videos/agent_327.mp4" type="video/mp4">
                   Your browser does not support the video tag.
                </video>
             </td>
             <td>
                <video id="v2" width="320" height="240" controls>
-                  <source src="videos/agent_327.mp4" type="video/mp4">
                   Your browser does not support the video tag.
                </video>
             </td>
@@ -35,19 +32,16 @@
          <tr>
             <td>
                <video id="v3" width="320" height="240" controls>
-                  <source src="videos/agent_327.mp4" type="video/mp4">
                   Your browser does not support the video tag.
                </video>
             </td>
             <td>
                <video id="v4" width="320" height="240" controls>
-                  <source src="videos/agent_327.mp4" type="video/mp4">
                   Your browser does not support the video tag.
                </video>
             </td>
             <td>
                <video id="v5" width="320" height="240" controls>
-                  <source src="videos/agent_327.mp4" type="video/mp4">
                   Your browser does not support the video tag.
                </video>
             </td>
@@ -55,10 +49,11 @@
       </table>
       <br> 
       <button onclick="playAll()">Play All</button>
+      <button id = "bt_pause" onclick="pauseAll()" disabled>Pause All</button>
+
       <p id="demo"></p>
       <script>
-         function playAll() {
-           var v = [
+         var v = [
              document.getElementById("v0"),
              document.getElementById("v1"),
              document.getElementById("v2"),
@@ -66,12 +61,28 @@
              document.getElementById("v4"),
              document.getElementById("v5")
            ];
-           
+
+         function playAll() {           
            v.forEach(function(player, index, array) {
+               player.src = 'videos/agent_327.mp4';
+               player.type = 'video/mp4';
                player.muted = true;
                player.play();
             })
+
+            document.getElementById('bt_pause').disabled = false;
          }
+
+         function pauseAll() {           
+           v.forEach(function(player, index, array) {
+               player.pause();// = true;
+            })
+         }
+
+         window.onload = (event) => {
+            document.getElementById('bt_pause').disabled = true;
+         };
+         
       </script>
    </body>
 </html>

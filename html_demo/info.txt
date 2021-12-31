@@ -2,6 +2,24 @@ to build:
   npm install express
   npm install ejs
 
-to run:
+Add agent_327.mp4 under videos/
+
+to run webserver:
   node server.js
+  open browser for: http://localhost:8080/
+
+for electron:
+  npm install --save-dev electron
+  npm install electron-ejs
+
+Add symbolic link for videos:
+  cd views/pages
+  ln -s ../../videos videos
+  cd ../../
+
+to run electron:
+  npm start
+
+
+
 
