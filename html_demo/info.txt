@@ -20,6 +20,9 @@ Add symbolic link for videos:
 to run electron:
   npm start
 
+Error on my machine: [39547:1231/114556.830036:ERROR:sandbox_linux.cc(376)] 
+  InitializeSandbox() called with multiple threads in process gpu-process.
+
 
 
 

@@ -6,9 +6,8 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
 //Initialize the app
-//let app = electron.app;
-//app.use('/videos/', express.static('./videos/'));
-//app.use('/videos/', electronEjs.static('./videos/'));
+// app.disableHardwareAcceleration();
+// app.commandLine.appendSwitch("disable-software-rasterizer");
 
 
 
